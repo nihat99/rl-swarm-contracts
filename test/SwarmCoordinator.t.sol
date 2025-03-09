@@ -36,7 +36,7 @@ contract SwarmCoordinatorTest is Test {
         uint256 currentStage = uint256(swarmCoordinator.currentStage());
 
         vm.roll(block.number + stageDurations[currentStage] - 1);
-        
+
         vm.expectRevert(SwarmCoordinator.StageDurationNotElapsed.selector);
         swarmCoordinator.updateStageAndRound();
     }

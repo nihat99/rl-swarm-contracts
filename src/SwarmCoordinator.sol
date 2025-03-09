@@ -14,14 +14,14 @@ contract SwarmCoordinator is Ownable {
     uint256 _currentStage = 0;
     uint256[3] _stageDurations;
     uint256 _stageStartBlock;
-    
+
     // Events
     event StageAdvanced(uint256 indexed roundNumber, uint256 newStage);
     event RoundAdvanced(uint256 indexed newRoundNumber);
 
     // Errors
     error StageDurationNotElapsed();
-    
+
     // Constructor
     constructor() Ownable(msg.sender) {
         _stageStartBlock = block.number;
@@ -38,7 +38,7 @@ contract SwarmCoordinator is Ownable {
     function currentStage() public view returns (uint256) {
         return _currentStage;
     }
-    
+
     /**
      * @dev Updates the current stage and round if enough time has passed
      * @return The current stage after any updates
@@ -47,7 +47,7 @@ contract SwarmCoordinator is Ownable {
         // Check if enough time has passed for the current stage
         uint256 stageIndex = _currentStage;
         require(block.number >= _stageStartBlock + _stageDurations[stageIndex], StageDurationNotElapsed());
-        
+
         if (Stage(_currentStage) == Stage.PeerVoting) {
             // If we're at the last stage, advance to the next round
             _currentRound++;
@@ -57,7 +57,7 @@ contract SwarmCoordinator is Ownable {
             // Otherwise, advance to the next stage
             _currentStage = _currentStage + 1;
         }
-        
+
         // Update the stage start block
         _stageStartBlock = block.number;
         emit StageAdvanced(_currentRound, _currentStage);
