@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract RLTraining is Ownable {
+contract RLSwarmCoordinator is Ownable {
     // Enums & Structs
     enum Stage { GenerateAnswers, CritiquePeers, PeerVoting }
 
@@ -39,7 +39,7 @@ contract RLTraining is Ownable {
     constructor(
         address[] memory _initialPeers,
         uint[3] memory _stageDurations
-    ) Ownable() {
+    ) Ownable(msg.sender) {
         require(_initialPeers.length > 0, "Initial peers required");
         initialPeers = _initialPeers;
         stageDurations = _stageDurations;
@@ -110,7 +110,7 @@ contract RLTraining is Ownable {
         // Verify the recovered address matches the peerPublicKey's Ethereum-derived address
         bytes32 publicKeyHash = keccak256(peerPublicKey); 
         require(
-            recoveredAddr == address(uint160(publicKeyHash)),
+            recoveredAddr == address(uint160(uint256(publicKeyHash))),
             "Invalid signature"
         );
         
