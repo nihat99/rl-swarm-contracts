@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract SwarmCoordinator is Ownable {
+    // Types
+    using ECDSA for bytes32;
+
     // State
     uint256 _currentRound = 0;
     uint256 _currentStage = 0;
@@ -71,4 +75,31 @@ contract SwarmCoordinator is Ownable {
 
         return (_currentRound, _currentStage);
     }
+
+    // Peer management
+
+    function addPeer(
+        bytes calldata pubkeyBytes, // Libp2p public key part of peer ID
+        bytes calldata signature
+    ) external {
+        address eoa = msg.sender;
+
+        // Check signature
+        bytes32 eoaHash = keccak256(abi.encodePacked(eoa));
+        bytes32 signedMessage = eoaHash.toEthSignedMessageHash();
+        address recoveredSigner = signedMessage.recover(signature);
+        // require(eoa == recoveredSigner, )
+        
+        // Extract public key from peer ID string (e.g., parse "/p2p/Qm...") → pubkeyBytes
+        require(recoveredAddr == pubkeyToAddress(pubkeyBytes), "Invalid signature");
+        
+        eoaToPubkey[eoa] = pubkeyBytes;
+        emit EOALinked(eoa, pubkeyBytes);
+    }
+
+    // Helper to convert public key bytes to address (simplified for example)
+    function pubkeyToAddress(bytes memory pubkey) private pure returns (address) {
+        // Implement multibase decoding → Ethereum address conversion here
+        return abi.decode(pubkey, (address)); // Replace with actual logic
+    }       
 }
