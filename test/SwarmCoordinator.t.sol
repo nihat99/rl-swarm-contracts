@@ -7,14 +7,13 @@ import {SwarmCoordinator} from "../src/SwarmCoordinator.sol";
 contract SwarmCoordinatorTest is Test {
     SwarmCoordinator public swarmCoordinator;
 
-    uint256[3] public stageDurations = [uint256(100), uint256(100), uint256(100)];
+    uint256[3] stageDurations = [uint256(100), uint256(100), uint256(100)];
 
     address owner = makeAddr("owner");
 
     function setUp() public {
         vm.startPrank(owner);
         swarmCoordinator = new SwarmCoordinator();
-        swarmCoordinator.setStageDurations(stageDurations);
         vm.stopPrank();
     }
 
@@ -32,12 +31,28 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.setStageDurations(stageDurations);
     }
 
+    function test_Owner_CanSetStageCount_Successfully(uint stageCount) public {
+        vm.prank(owner);
+        swarmCoordinator.setStageCount(stageCount);
+        assertEq(stageCount, swarmCoordinator.stageCount());
+    }
+
+    function test_Nobody_CanSetStageCount_Successfully(uint stageCount) public {
+        vm.expectRevert();
+        swarmCoordinator.setStageCount(stageCount);
+    }
+
     function test_Anyone_Can_QueryCurrentRound() public {
         uint256 currentRound = swarmCoordinator.currentRound();
         assertEq(currentRound, 0);
     }
 
     function test_Anyone_CanAdvanceStage_IfEnoughTimeHasPassed() public {
+        vm.startPrank(owner);
+        swarmCoordinator.setStageDurations(stageDurations);
+        swarmCoordinator.setStageCount(stageDurations.length);
+        vm.stopPrank();
+
         uint256 currentStage = uint256(swarmCoordinator.currentStage());
 
         vm.roll(block.number + stageDurations[currentStage] + 1);
@@ -46,7 +61,10 @@ contract SwarmCoordinatorTest is Test {
         assertEq(newStage, currentStage + 1);
     }
 
-    function test_Anyone_CannotAdvanceStage_IfNotEnoughTimeHasPassed() public {
+    function test_Nobody_CanAdvanceStage_IfNotEnoughTimeHasPassed() public {
+        vm.prank(owner);
+        swarmCoordinator.setStageDurations(stageDurations);
+
         uint256 currentStage = uint256(swarmCoordinator.currentStage());
 
         vm.roll(block.number + stageDurations[currentStage] - 1);
@@ -56,6 +74,11 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanAdvanceRound_IfEnoughTimeHasPassed() public {
+        vm.startPrank(owner);
+        swarmCoordinator.setStageDurations(stageDurations);
+        swarmCoordinator.setStageCount(stageDurations.length);
+        vm.stopPrank();
+
         uint256 currentRound = uint256(swarmCoordinator.currentRound());
 
         for (uint256 i = 0; i < stageDurations.length; i++) {

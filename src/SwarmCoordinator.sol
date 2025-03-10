@@ -4,14 +4,10 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SwarmCoordinator is Ownable {
-    enum Stage {
-        GenerateAnswers,
-        CritiquePeers,
-        PeerVoting
-    }
-
+    // State
     uint256 _currentRound = 0;
     uint256 _currentStage = 0;
+    uint256 _stageCount = 0;
     uint256[3] _stageDurations;
     uint256 _stageStartBlock;
 
@@ -31,6 +27,14 @@ contract SwarmCoordinator is Ownable {
         _stageDurations = stageDurations_;
     }
 
+    function setStageCount(uint256 stageCount_) public onlyOwner {
+        _stageCount = stageCount_;
+    }
+
+    function stageCount() public view returns (uint256)  {
+        return _stageCount;
+    }
+
     function currentRound() public view returns (uint256) {
         return _currentRound;
     }
@@ -48,7 +52,7 @@ contract SwarmCoordinator is Ownable {
         uint256 stageIndex = _currentStage;
         require(block.number >= _stageStartBlock + _stageDurations[stageIndex], StageDurationNotElapsed());
 
-        if (Stage(_currentStage) == Stage.PeerVoting) {
+        if (_currentStage + 1 >= _stageCount) {
             // If we're at the last stage, advance to the next round
             _currentRound++;
             _currentStage = 0;
