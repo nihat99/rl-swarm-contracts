@@ -18,6 +18,7 @@ contract SwarmCoordinator is Ownable {
 
     // Errors
     error StageDurationNotElapsed();
+    error StageOutOfBounds();
 
     // Constructor
     constructor() Ownable(msg.sender) {
@@ -25,6 +26,7 @@ contract SwarmCoordinator is Ownable {
     }
 
     function setStageDuration(uint256 stage_, uint256 stageDuration_) public onlyOwner {
+        require(stage_ < _stageCount, StageOutOfBounds());
         _stageDurations[stage_] = stageDuration_;
     }
 

@@ -19,9 +19,25 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.owner(), address(owner));
     }
 
-    function test_Owner_CanSetStageDurations_Successfully(uint256 stage_, uint256 stageDuration_) public {
-        vm.prank(owner);
+    function test_Owner_CanSetStageDurations_Successfully() public {
+        uint256 stage_ = 5;
+        uint256 stageDuration_ = 100;
+
+        vm.startPrank(owner);
+        // We make sure we got enough stages set to avoid an out of bounds error
+        swarmCoordinator.setStageCount(stage_ + 1);
         swarmCoordinator.setStageDuration(stage_, stageDuration_);
+        vm.stopPrank();
+    }
+
+    function test_Owner_CannotSetStageDuration_ForOutOfBoundsStage() public {
+        uint256 stageCount_ = 3;
+
+        vm.startPrank(owner);
+        swarmCoordinator.setStageCount(stageCount_);
+        vm.expectRevert(SwarmCoordinator.StageOutOfBounds.selector);
+        swarmCoordinator.setStageDuration(stageCount_, 100);
+        vm.stopPrank();
     }
 
     function test_Nobody_CanSetStageDurations_Successfully() public {
