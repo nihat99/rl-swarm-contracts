@@ -9,13 +9,27 @@ contract SwarmCoordinatorTest is Test {
 
     uint256[3] public stageDurations = [uint256(100), uint256(100), uint256(100)];
 
+    address owner = makeAddr("owner");
+
     function setUp() public {
+        vm.startPrank(owner);
         swarmCoordinator = new SwarmCoordinator();
         swarmCoordinator.setStageDurations(stageDurations);
+        vm.stopPrank();
     }
 
     function test_SwarmCoordinator_IsCorrectlyDeployed() public {
-        assertEq(swarmCoordinator.owner(), address(this));
+        assertEq(swarmCoordinator.owner(), address(owner));
+    }
+
+    function test_Owner_CanSetStageDurations_Successfully() public {
+        vm.prank(owner);
+        swarmCoordinator.setStageDurations(stageDurations);
+    }
+
+    function test_Nobody_CanSetStageDurations_Successfully() public {
+        vm.expectRevert();
+        swarmCoordinator.setStageDurations(stageDurations);
     }
 
     function test_Anyone_Can_QueryCurrentRound() public {
