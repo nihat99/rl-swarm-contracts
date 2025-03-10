@@ -8,7 +8,8 @@ contract SwarmCoordinator is Ownable {
     uint256 _currentRound = 0;
     uint256 _currentStage = 0;
     uint256 _stageCount = 0;
-    uint256[3] _stageDurations;
+    // stage => duration
+    mapping(uint256 => uint256) _stageDurations;
     uint256 _stageStartBlock;
 
     // Events
@@ -23,8 +24,8 @@ contract SwarmCoordinator is Ownable {
         _stageStartBlock = block.number;
     }
 
-    function setStageDurations(uint256[3] memory stageDurations_) public onlyOwner {
-        _stageDurations = stageDurations_;
+    function setStageDuration(uint256 stage_, uint256 stageDuration_) public onlyOwner {
+        _stageDurations[stage_] = stageDuration_;
     }
 
     function setStageCount(uint256 stageCount_) public onlyOwner {

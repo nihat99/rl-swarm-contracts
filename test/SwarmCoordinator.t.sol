@@ -7,8 +7,6 @@ import {SwarmCoordinator} from "../src/SwarmCoordinator.sol";
 contract SwarmCoordinatorTest is Test {
     SwarmCoordinator public swarmCoordinator;
 
-    uint256[3] stageDurations = [uint256(100), uint256(100), uint256(100)];
-
     address owner = makeAddr("owner");
 
     function setUp() public {
@@ -21,14 +19,14 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.owner(), address(owner));
     }
 
-    function test_Owner_CanSetStageDurations_Successfully() public {
+    function test_Owner_CanSetStageDurations_Successfully(uint256 stage_, uint256 stageDuration_) public {
         vm.prank(owner);
-        swarmCoordinator.setStageDurations(stageDurations);
+        swarmCoordinator.setStageDuration(stage_, stageDuration_);
     }
 
     function test_Nobody_CanSetStageDurations_Successfully() public {
         vm.expectRevert();
-        swarmCoordinator.setStageDurations(stageDurations);
+        swarmCoordinator.setStageDuration(0, 1);
     }
 
     function test_Owner_CanSetStageCount_Successfully(uint stageCount) public {
@@ -48,47 +46,58 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanAdvanceStage_IfEnoughTimeHasPassed() public {
+        uint256 stageCount_ = 2;
+        uint256 stageDuration_ = 100;
+
         vm.startPrank(owner);
-        swarmCoordinator.setStageDurations(stageDurations);
-        swarmCoordinator.setStageCount(stageDurations.length);
+        swarmCoordinator.setStageCount(stageCount_);
+        swarmCoordinator.setStageDuration(0, stageDuration_);
+        swarmCoordinator.setStageDuration(1, stageDuration_);
         vm.stopPrank();
 
-        uint256 currentStage = uint256(swarmCoordinator.currentStage());
+        uint256 startingStage = uint256(swarmCoordinator.currentStage());
 
-        vm.roll(block.number + stageDurations[currentStage] + 1);
+        vm.roll(block.number + stageDuration_ + 1);
         (, uint256 newStage) = swarmCoordinator.updateStageAndRound();
 
-        assertEq(newStage, currentStage + 1);
+        assertEq(newStage, startingStage + 1);
     }
 
     function test_Nobody_CanAdvanceStage_IfNotEnoughTimeHasPassed() public {
-        vm.prank(owner);
-        swarmCoordinator.setStageDurations(stageDurations);
+        uint256 stageDuration_ = 100;
 
-        uint256 currentStage = uint256(swarmCoordinator.currentStage());
+        vm.startPrank(owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageDuration(0, stageDuration_);
+        vm.stopPrank();
 
-        vm.roll(block.number + stageDurations[currentStage] - 1);
+        vm.roll(block.number + stageDuration_ - 1);
 
         vm.expectRevert(SwarmCoordinator.StageDurationNotElapsed.selector);
         swarmCoordinator.updateStageAndRound();
     }
 
     function test_Anyone_CanAdvanceRound_IfEnoughTimeHasPassed() public {
+        uint256 stageCount_ = 3;
+        uint256 stageDuration_ = 100;
+
         vm.startPrank(owner);
-        swarmCoordinator.setStageDurations(stageDurations);
-        swarmCoordinator.setStageCount(stageDurations.length);
+        swarmCoordinator.setStageCount(stageCount_);
+        swarmCoordinator.setStageDuration(0, stageDuration_);
+        swarmCoordinator.setStageDuration(1, stageDuration_);
+        swarmCoordinator.setStageDuration(2, stageDuration_);
         vm.stopPrank();
 
-        uint256 currentRound = uint256(swarmCoordinator.currentRound());
+        uint256 startingRound = uint256(swarmCoordinator.currentRound());
 
-        for (uint256 i = 0; i < stageDurations.length; i++) {
-            vm.roll(block.number + stageDurations[i] + 1);
+        for (uint256 i = 0; i < stageCount_; i++) {
+            vm.roll(block.number + stageDuration_ + 1);
             swarmCoordinator.updateStageAndRound();
         }
 
         uint256 newRound = uint256(swarmCoordinator.currentRound());
         uint256 newStage = uint256(swarmCoordinator.currentStage());
-        assertEq(newRound, currentRound + 1);
+        assertEq(newRound, startingRound + 1);
         assertEq(newStage, 0);
     }
 }
