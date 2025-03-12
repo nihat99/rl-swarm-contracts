@@ -40,7 +40,7 @@ contract SwarmCoordinator is Ownable {
         _stageCount = stageCount_;
     }
 
-    function stageCount() public view returns (uint256)  {
+    function stageCount() public view returns (uint256) {
         return _stageCount;
     }
 
@@ -78,9 +78,7 @@ contract SwarmCoordinator is Ownable {
         return (_currentRound, _currentStage);
     }
 
-    function addPeer(
-        bytes calldata peerId
-    ) external {
+    function addPeer(bytes calldata peerId) external {
         address eoa = msg.sender;
 
         _eoaToPeerId[eoa] = peerId;

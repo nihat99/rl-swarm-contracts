@@ -45,13 +45,13 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.setStageDuration(0, 1);
     }
 
-    function test_Owner_CanSetStageCount_Successfully(uint stageCount) public {
+    function test_Owner_CanSetStageCount_Successfully(uint256 stageCount) public {
         vm.prank(owner);
         swarmCoordinator.setStageCount(stageCount);
         assertEq(stageCount, swarmCoordinator.stageCount());
     }
 
-    function test_Nobody_CanSetStageCount_Successfully(uint stageCount) public {
+    function test_Nobody_CanSetStageCount_Successfully(uint256 stageCount) public {
         vm.expectRevert();
         swarmCoordinator.setStageCount(stageCount);
     }
@@ -120,64 +120,64 @@ contract SwarmCoordinatorTest is Test {
     function test_Anyone_CanAddPeer_Successfully() public {
         address user = makeAddr("user");
         bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
-        
+
         vm.startPrank(user);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.EOALinked(user, peerId);
         swarmCoordinator.addPeer(peerId);
         vm.stopPrank();
-        
+
         // Verify the mapping was updated correctly using the getter function
         bytes memory storedPeerId = swarmCoordinator.getPeerId(user);
         assertEq(keccak256(storedPeerId), keccak256(peerId), "Peer ID not stored correctly");
     }
-    
+
     function test_AddPeer_WithDifferentPeerIds() public {
         address user1 = makeAddr("user1");
         address user2 = makeAddr("user2");
         bytes memory peerId1 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
         bytes memory peerId2 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5M");
-        
+
         // First user adds peer
         vm.prank(user1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.EOALinked(user1, peerId1);
         swarmCoordinator.addPeer(peerId1);
-        
+
         // Second user adds peer
         vm.prank(user2);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.EOALinked(user2, peerId2);
         swarmCoordinator.addPeer(peerId2);
-        
+
         // Verify the mappings were updated correctly
         bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user1);
         bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user2);
         assertEq(keccak256(storedPeerId1), keccak256(peerId1), "Peer ID 1 not stored correctly");
         assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Peer ID 2 not stored correctly");
     }
-    
+
     function test_AddPeer_CanUpdateExistingMapping() public {
         address user = makeAddr("user");
         bytes memory peerId1 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
         bytes memory peerId2 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5M");
-        
+
         // User adds first peer
         vm.prank(user);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.EOALinked(user, peerId1);
         swarmCoordinator.addPeer(peerId1);
-        
+
         // Verify first peer ID was stored correctly
         bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user);
         assertEq(keccak256(storedPeerId1), keccak256(peerId1), "First peer ID not stored correctly");
-        
+
         // User updates to second peer
         vm.prank(user);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.EOALinked(user, peerId2);
         swarmCoordinator.addPeer(peerId2);
-        
+
         // Verify second peer ID overwrote the first one
         bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user);
         assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Second peer ID not stored correctly");
