@@ -15,10 +15,12 @@ contract SwarmCoordinator is Ownable {
     // stage => duration
     mapping(uint256 => uint256) _stageDurations;
     uint256 _stageStartBlock;
+    mapping(address => bytes) _eoaToPeerId;
 
     // Events
     event StageAdvanced(uint256 indexed roundNumber, uint256 newStage);
     event RoundAdvanced(uint256 indexed newRoundNumber);
+    event EOALinked(address indexed eoa, bytes peerId);
 
     // Errors
     error StageDurationNotElapsed();
@@ -76,30 +78,22 @@ contract SwarmCoordinator is Ownable {
         return (_currentRound, _currentStage);
     }
 
-    // Peer management
-
     function addPeer(
-        bytes calldata pubkeyBytes, // Libp2p public key part of peer ID
-        bytes calldata signature
+        bytes calldata peerId
     ) external {
         address eoa = msg.sender;
 
-        // Check signature
-        bytes32 eoaHash = keccak256(abi.encodePacked(eoa));
-        bytes32 signedMessage = eoaHash.toEthSignedMessageHash();
-        address recoveredSigner = signedMessage.recover(signature);
-        // require(eoa == recoveredSigner, )
-        
-        // Extract public key from peer ID string (e.g., parse "/p2p/Qm...") → pubkeyBytes
-        require(recoveredAddr == pubkeyToAddress(pubkeyBytes), "Invalid signature");
-        
-        eoaToPubkey[eoa] = pubkeyBytes;
-        emit EOALinked(eoa, pubkeyBytes);
+        _eoaToPeerId[eoa] = peerId;
+
+        emit EOALinked(eoa, peerId);
     }
 
-    // Helper to convert public key bytes to address (simplified for example)
-    function pubkeyToAddress(bytes memory pubkey) private pure returns (address) {
-        // Implement multibase decoding → Ethereum address conversion here
-        return abi.decode(pubkey, (address)); // Replace with actual logic
-    }       
+    /**
+     * @dev Retrieves the peer ID associated with an EOA address
+     * @param eoa The EOA address to look up
+     * @return The peer ID associated with the EOA address
+     */
+    function getPeerId(address eoa) external view returns (bytes memory) {
+        return _eoaToPeerId[eoa];
+    }
 }
