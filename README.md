@@ -55,16 +55,19 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 ### For Participants
 
 1. Register your peer:
+
 ```solidity
 function registerPeer(bytes calldata peerId) external
 ```
 
 2. Check your accrued rewards:
+
 ```solidity
 function getAccruedRewards(address account) external view returns (uint256)
 ```
 
 3. View current round and stage:
+
 ```solidity
 function currentRound() external view returns (uint256)
 function currentStage() external view returns (uint256)
@@ -79,9 +82,7 @@ Manages stages and other managers.
 ```solidity
 function setStageCount(uint256 stageCount_)
 function setStageDuration(uint256 stage_, uint256 stageDuration_)
-// Set Winner Manager
 function setWinnerManager(address newManager)
-// Set Bootnode Manager
 function setBootnodeManager(address newManager)
 ```
 
