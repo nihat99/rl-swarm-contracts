@@ -6,13 +6,15 @@ labels: enhancement
 assignees: '@cleanunicorn'
 ---
 
-**Problem Statement**
+### Problem Statement
+
 A clear description of the problem this feature would solve. Ex: I need a new function that [...]
 
-**Proposed Solution**
+### Proposed Solution
+
 A clear description of what you want to happen.
 
-**Technical Details**
+### Technical Details
 
 Add as needed:
 
@@ -21,16 +23,20 @@ Add as needed:
 - Events to emit: N/A
 - Access control considerations: N/A
 
-**[Optional] Example Implementation**
+### [Optional] Example Implementation
+
 ```solidity
 // Add example code if applicable
 ```
 
-**[Optional] Security Considerations**
+### [Optional] Security Considerations
+
 Describe potential security implications or concerns.
 
-**[Optional] Alternatives Considered**
+### [Optional] Alternatives Considered
+
 A clear description of any alternative solutions you've considered.
 
-**[Optional] Additional Context**
+### [Optional] Additional Context
+
 Add any other context, diagrams, or screenshots about the feature request here.
