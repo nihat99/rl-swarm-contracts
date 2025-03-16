@@ -20,18 +20,6 @@ contract SwarmCoordinator is Ownable {
     // | ░░░░░░░░░     ░░░░░   ░░░░░░░░    ░░░░░   ░░░░░░  |
     // '---------------------------------------------------'
 
-
-
-
-
-
-
-
-
-
-
-
-
     // Current round number
     uint256 _currentRound = 0;
     // Current stage within the round
