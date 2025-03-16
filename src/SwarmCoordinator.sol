@@ -16,14 +16,14 @@ contract SwarmCoordinator is Ownable {
     mapping(uint256 => uint256) _stageDurations;
     uint256 _stageStartBlock;
     mapping(address => bytes) _eoaToPeerId;
-    
+
     // Winner submitter role and winner tracking
     address private _winnerSubmitter;
     // round => winner address
     mapping(uint256 => address) private _roundWinners;
     // account => total accrued rewards
     mapping(address => uint256) private _accruedRewards;
-    
+
     // Bootnode manager and bootnodes
     address private _bootnodeManager;
     string[] private _bootnodes;
@@ -168,15 +168,15 @@ contract SwarmCoordinator is Ownable {
      */
     function removeBootnode(uint256 index) external onlyBootnodeManager {
         if (index >= _bootnodes.length) revert InvalidBootnodeIndex();
-        
+
         // Move the last element to the position being deleted (unless it's the last element)
         if (index < _bootnodes.length - 1) {
             _bootnodes[index] = _bootnodes[_bootnodes.length - 1];
         }
-        
+
         // Remove the last element
         _bootnodes.pop();
-        
+
         emit BootnodeRemoved(msg.sender, index);
     }
 
@@ -231,16 +231,16 @@ contract SwarmCoordinator is Ownable {
     function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyWinnerSubmitter {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
-        
+
         // Check if winner was already submitted for this round
         if (_roundWinners[roundNumber] != address(0)) revert WinnerAlreadySubmitted();
-        
+
         // Record the winner
         _roundWinners[roundNumber] = winner;
-        
+
         // Update accrued rewards
         _accruedRewards[winner] += reward;
-        
+
         emit WinnerSubmitted(roundNumber, winner, reward);
         emit RewardsAccrued(winner, _accruedRewards[winner]);
     }

@@ -322,7 +322,7 @@ contract SwarmCoordinatorTest is Test {
         // Get bootnodes as a regular user
         vm.prank(user);
         string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
-        
+
         // Verify the bootnodes are accessible
         assertEq(storedBootnodes.length, 2);
         assertEq(storedBootnodes[0], newBootnodes[0]);
@@ -342,7 +342,7 @@ contract SwarmCoordinatorTest is Test {
         // Get bootnode count as a regular user
         vm.prank(user);
         uint256 count = swarmCoordinator.getBootnodesCount();
-        
+
         // Verify the count is correct
         assertEq(count, 3);
     }
@@ -350,7 +350,7 @@ contract SwarmCoordinatorTest is Test {
     // Winner submitter tests
     function test_Owner_CanSetWinnerSubmitter() public {
         address submitter = makeAddr("submitter");
-        
+
         vm.startPrank(owner);
         vm.expectEmit(true, true, false, false);
         emit SwarmCoordinator.WinnerSubmitterUpdated(address(0), submitter);
@@ -362,7 +362,7 @@ contract SwarmCoordinatorTest is Test {
 
     function test_NonOwner_CannotSetWinnerSubmitter() public {
         address submitter = makeAddr("submitter");
-        
+
         vm.prank(user);
         vm.expectRevert();
         swarmCoordinator.setWinnerSubmitter(submitter);
@@ -372,7 +372,7 @@ contract SwarmCoordinatorTest is Test {
         address submitter = makeAddr("submitter");
         address winner = makeAddr("winner");
         uint256 reward = 100;
-        
+
         // Set up winner submitter
         vm.prank(owner);
         swarmCoordinator.setWinnerSubmitter(submitter);
@@ -391,7 +391,7 @@ contract SwarmCoordinatorTest is Test {
     function test_NonWinnerSubmitter_CannotSubmitWinner() public {
         address winner = makeAddr("winner");
         uint256 reward = 100;
-        
+
         vm.prank(user);
         vm.expectRevert(SwarmCoordinator.OnlyWinnerSubmitter.selector);
         swarmCoordinator.submitWinner(0, winner, reward);
@@ -401,7 +401,7 @@ contract SwarmCoordinatorTest is Test {
         address submitter = makeAddr("submitter");
         address winner = makeAddr("winner");
         uint256 reward = 100;
-        
+
         // Set up winner submitter
         vm.prank(owner);
         swarmCoordinator.setWinnerSubmitter(submitter);
@@ -416,7 +416,7 @@ contract SwarmCoordinatorTest is Test {
         address submitter = makeAddr("submitter");
         address winner = makeAddr("winner");
         uint256 reward = 100;
-        
+
         // Set up winner submitter
         vm.prank(owner);
         swarmCoordinator.setWinnerSubmitter(submitter);
@@ -437,15 +437,15 @@ contract SwarmCoordinatorTest is Test {
         address winner = makeAddr("winner");
         uint256 reward1 = 100;
         uint256 reward2 = 200;
-        
+
         // Set up winner submitter
         vm.prank(owner);
         swarmCoordinator.setWinnerSubmitter(submitter);
-        
+
         // Submit winner for round 0
         vm.prank(submitter);
         swarmCoordinator.submitWinner(0, winner, reward1);
-        
+
         // Advance to round 1
         vm.startPrank(owner);
         swarmCoordinator.setStageCount(1);
@@ -453,7 +453,7 @@ contract SwarmCoordinatorTest is Test {
         vm.roll(block.number + 101);
         swarmCoordinator.updateStageAndRound();
         vm.stopPrank();
-        
+
         // Submit winner for round 1
         vm.prank(submitter);
         swarmCoordinator.submitWinner(1, winner, reward2);
@@ -466,18 +466,18 @@ contract SwarmCoordinatorTest is Test {
         address submitter = makeAddr("submitter");
         address winner = makeAddr("winner");
         uint256 reward = 100;
-        
+
         // Set up winner submitter and submit winner
         vm.prank(owner);
         swarmCoordinator.setWinnerSubmitter(submitter);
-        
+
         vm.prank(submitter);
         swarmCoordinator.submitWinner(0, winner, reward);
 
         // Get winner as regular user
         vm.prank(user);
         address roundWinner = swarmCoordinator.getRoundWinner(0);
-        
+
         // Verify winner
         assertEq(roundWinner, winner);
     }
@@ -486,18 +486,18 @@ contract SwarmCoordinatorTest is Test {
         address submitter = makeAddr("submitter");
         address winner = makeAddr("winner");
         uint256 reward = 100;
-        
+
         // Set up winner submitter and submit winner
         vm.prank(owner);
         swarmCoordinator.setWinnerSubmitter(submitter);
-        
+
         vm.prank(submitter);
         swarmCoordinator.submitWinner(0, winner, reward);
 
         // Get accrued rewards as regular user
         vm.prank(user);
         uint256 accruedRewards = swarmCoordinator.getAccruedRewards(winner);
-        
+
         // Verify rewards
         assertEq(accruedRewards, reward);
     }
