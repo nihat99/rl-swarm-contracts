@@ -322,7 +322,7 @@ contract SwarmCoordinatorTest is Test {
         // Get bootnodes as a regular user
         vm.prank(user);
         string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
-        
+
         // Verify the bootnodes are accessible
         assertEq(storedBootnodes.length, 2);
         assertEq(storedBootnodes[0], newBootnodes[0]);
@@ -342,8 +342,163 @@ contract SwarmCoordinatorTest is Test {
         // Get bootnode count as a regular user
         vm.prank(user);
         uint256 count = swarmCoordinator.getBootnodesCount();
-        
+
         // Verify the count is correct
         assertEq(count, 3);
+    }
+
+    // Winner submitter tests
+    function test_Owner_CanSetWinnerSubmitter() public {
+        address submitter = makeAddr("submitter");
+
+        vm.startPrank(owner);
+        vm.expectEmit(true, true, false, false);
+        emit SwarmCoordinator.WinnerSubmitterUpdated(address(0), submitter);
+        swarmCoordinator.setWinnerSubmitter(submitter);
+        vm.stopPrank();
+
+        assertEq(swarmCoordinator.winnerSubmitter(), submitter);
+    }
+
+    function test_NonOwner_CannotSetWinnerSubmitter() public {
+        address submitter = makeAddr("submitter");
+
+        vm.prank(user);
+        vm.expectRevert();
+        swarmCoordinator.setWinnerSubmitter(submitter);
+    }
+
+    function test_WinnerSubmitter_CanSubmitWinner() public {
+        address submitter = makeAddr("submitter");
+        address winner = makeAddr("winner");
+        uint256 reward = 100;
+
+        // Set up winner submitter
+        vm.prank(owner);
+        swarmCoordinator.setWinnerSubmitter(submitter);
+
+        // Submit winner for round 0
+        vm.prank(submitter);
+        vm.expectEmit(true, true, false, true);
+        emit SwarmCoordinator.WinnerSubmitted(0, winner, reward);
+        swarmCoordinator.submitWinner(0, winner, reward);
+
+        // Verify winner and accrued rewards
+        assertEq(swarmCoordinator.getRoundWinner(0), winner);
+        assertEq(swarmCoordinator.getAccruedRewards(winner), reward);
+    }
+
+    function test_NonWinnerSubmitter_CannotSubmitWinner() public {
+        address winner = makeAddr("winner");
+        uint256 reward = 100;
+
+        vm.prank(user);
+        vm.expectRevert(SwarmCoordinator.OnlyWinnerSubmitter.selector);
+        swarmCoordinator.submitWinner(0, winner, reward);
+    }
+
+    function test_CannotSubmitWinner_ForFutureRound() public {
+        address submitter = makeAddr("submitter");
+        address winner = makeAddr("winner");
+        uint256 reward = 100;
+
+        // Set up winner submitter
+        vm.prank(owner);
+        swarmCoordinator.setWinnerSubmitter(submitter);
+
+        // Try to submit winner for future round
+        vm.prank(submitter);
+        vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
+        swarmCoordinator.submitWinner(1, winner, reward);
+    }
+
+    function test_CannotSubmitWinner_Twice() public {
+        address submitter = makeAddr("submitter");
+        address winner = makeAddr("winner");
+        uint256 reward = 100;
+
+        // Set up winner submitter
+        vm.prank(owner);
+        swarmCoordinator.setWinnerSubmitter(submitter);
+
+        // Submit winner first time
+        vm.startPrank(submitter);
+        swarmCoordinator.submitWinner(0, winner, reward);
+
+        // Try to submit different winner for same round
+        address winner2 = makeAddr("winner2");
+        vm.expectRevert(SwarmCoordinator.WinnerAlreadySubmitted.selector);
+        swarmCoordinator.submitWinner(0, winner2, reward);
+        vm.stopPrank();
+    }
+
+    function test_AccruedRewards_Accumulate() public {
+        address submitter = makeAddr("submitter");
+        address winner = makeAddr("winner");
+        uint256 reward1 = 100;
+        uint256 reward2 = 200;
+
+        // Set up winner submitter
+        vm.prank(owner);
+        swarmCoordinator.setWinnerSubmitter(submitter);
+
+        // Submit winner for round 0
+        vm.prank(submitter);
+        swarmCoordinator.submitWinner(0, winner, reward1);
+
+        // Advance to round 1
+        vm.startPrank(owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageDuration(0, 100);
+        vm.roll(block.number + 101);
+        swarmCoordinator.updateStageAndRound();
+        vm.stopPrank();
+
+        // Submit winner for round 1
+        vm.prank(submitter);
+        swarmCoordinator.submitWinner(1, winner, reward2);
+
+        // Verify accrued rewards
+        assertEq(swarmCoordinator.getAccruedRewards(winner), reward1 + reward2);
+    }
+
+    function test_Anyone_CanGetRoundWinner() public {
+        address submitter = makeAddr("submitter");
+        address winner = makeAddr("winner");
+        uint256 reward = 100;
+
+        // Set up winner submitter and submit winner
+        vm.prank(owner);
+        swarmCoordinator.setWinnerSubmitter(submitter);
+
+        vm.prank(submitter);
+        swarmCoordinator.submitWinner(0, winner, reward);
+
+        // Get winner as regular user
+        vm.prank(user);
+        address roundWinner = swarmCoordinator.getRoundWinner(0);
+
+        // Verify winner
+        assertEq(roundWinner, winner);
+    }
+
+    function test_Anyone_CanGetAccruedRewards() public {
+        address submitter = makeAddr("submitter");
+        address winner = makeAddr("winner");
+        uint256 reward = 100;
+
+        // Set up winner submitter and submit winner
+        vm.prank(owner);
+        swarmCoordinator.setWinnerSubmitter(submitter);
+
+        vm.prank(submitter);
+        swarmCoordinator.submitWinner(0, winner, reward);
+
+        // Get accrued rewards as regular user
+        vm.prank(user);
+        uint256 accruedRewards = swarmCoordinator.getAccruedRewards(winner);
+
+        // Verify rewards
+        assertEq(accruedRewards, reward);
     }
 }
