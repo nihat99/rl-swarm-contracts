@@ -2,12 +2,8 @@
 pragma solidity ^0.8.17;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract SwarmCoordinator is Ownable {
-    // Types
-    using ECDSA for bytes32;
-
     // State
     uint256 _currentRound = 0;
     uint256 _currentStage = 0;
