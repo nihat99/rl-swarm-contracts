@@ -8,6 +8,8 @@ contract SwarmCoordinatorTest is Test {
     SwarmCoordinator public swarmCoordinator;
 
     address owner = makeAddr("owner");
+    address bootnodeManager = makeAddr("bootnodeManager");
+    address user = makeAddr("user");
 
     function setUp() public {
         vm.startPrank(owner);
@@ -182,5 +184,166 @@ contract SwarmCoordinatorTest is Test {
         bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user);
         assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Second peer ID not stored correctly");
         assertTrue(keccak256(storedPeerId2) != keccak256(peerId1), "Peer ID was not updated");
+    }
+
+    // Bootnode tests
+    function test_Owner_IsBootnodeManager_ByDefault() public {
+        assertEq(swarmCoordinator.bootnodeManager(), owner);
+    }
+
+    function test_Owner_CanSetBootnodeManager() public {
+        vm.startPrank(owner);
+        vm.expectEmit(true, true, false, false);
+        emit SwarmCoordinator.BootnodeManagerUpdated(owner, bootnodeManager);
+        swarmCoordinator.setBootnodeManager(bootnodeManager);
+        vm.stopPrank();
+
+        assertEq(swarmCoordinator.bootnodeManager(), bootnodeManager);
+    }
+
+    function test_NonOwner_CannotSetBootnodeManager() public {
+        vm.prank(user);
+        vm.expectRevert();
+        swarmCoordinator.setBootnodeManager(bootnodeManager);
+    }
+
+    function test_BootnodeManager_CanAddBootnodes() public {
+        string[] memory newBootnodes = new string[](2);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
+
+        vm.prank(owner);
+        vm.expectEmit(true, false, false, true);
+        emit SwarmCoordinator.BootnodesAdded(owner, 2);
+        swarmCoordinator.addBootnodes(newBootnodes);
+
+        string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
+        assertEq(storedBootnodes.length, 2);
+        assertEq(storedBootnodes[0], newBootnodes[0]);
+        assertEq(storedBootnodes[1], newBootnodes[1]);
+    }
+
+    function test_NonBootnodeManager_CannotAddBootnodes() public {
+        string[] memory newBootnodes = new string[](1);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+
+        vm.prank(user);
+        vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
+        swarmCoordinator.addBootnodes(newBootnodes);
+    }
+
+    function test_BootnodeManager_CanRemoveBootnode() public {
+        // First add some bootnodes
+        string[] memory newBootnodes = new string[](3);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
+        newBootnodes[2] = "/ip4/127.0.0.1/tcp/4003/p2p/QmBootnode3";
+
+        vm.startPrank(owner);
+        swarmCoordinator.addBootnodes(newBootnodes);
+
+        // Now remove the middle one
+        vm.expectEmit(true, false, false, true);
+        emit SwarmCoordinator.BootnodeRemoved(owner, 1);
+        swarmCoordinator.removeBootnode(1);
+        vm.stopPrank();
+
+        // Verify the bootnode was removed and the array was reorganized
+        string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
+        assertEq(storedBootnodes.length, 2);
+        assertEq(storedBootnodes[0], newBootnodes[0]);
+        // The last element should now be at index 1
+        assertEq(storedBootnodes[1], newBootnodes[2]);
+    }
+
+    function test_BootnodeManager_CannotRemoveInvalidIndex() public {
+        vm.prank(owner);
+        vm.expectRevert(SwarmCoordinator.InvalidBootnodeIndex.selector);
+        swarmCoordinator.removeBootnode(0); // No bootnodes yet
+    }
+
+    function test_NonBootnodeManager_CannotRemoveBootnode() public {
+        // First add a bootnode as the owner
+        string[] memory newBootnodes = new string[](1);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+
+        vm.prank(owner);
+        swarmCoordinator.addBootnodes(newBootnodes);
+
+        // Try to remove as non-manager
+        vm.prank(user);
+        vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
+        swarmCoordinator.removeBootnode(0);
+    }
+
+    function test_BootnodeManager_CanClearAllBootnodes() public {
+        // First add some bootnodes
+        string[] memory newBootnodes = new string[](2);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
+
+        vm.startPrank(owner);
+        swarmCoordinator.addBootnodes(newBootnodes);
+
+        // Now clear them
+        vm.expectEmit(true, false, false, false);
+        emit SwarmCoordinator.AllBootnodesCleared(owner);
+        swarmCoordinator.clearBootnodes();
+        vm.stopPrank();
+
+        // Verify all bootnodes were cleared
+        string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
+        assertEq(storedBootnodes.length, 0);
+    }
+
+    function test_NonBootnodeManager_CannotClearBootnodes() public {
+        // First add a bootnode as the owner
+        string[] memory newBootnodes = new string[](1);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+
+        vm.prank(owner);
+        swarmCoordinator.addBootnodes(newBootnodes);
+
+        // Try to clear as non-manager
+        vm.prank(user);
+        vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
+        swarmCoordinator.clearBootnodes();
+    }
+
+    function test_Anyone_CanGetBootnodes() public {
+        // First add some bootnodes as the owner
+        string[] memory newBootnodes = new string[](2);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
+
+        vm.prank(owner);
+        swarmCoordinator.addBootnodes(newBootnodes);
+
+        // Get bootnodes as a regular user
+        vm.prank(user);
+        string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
+        
+        // Verify the bootnodes are accessible
+        assertEq(storedBootnodes.length, 2);
+        assertEq(storedBootnodes[0], newBootnodes[0]);
+        assertEq(storedBootnodes[1], newBootnodes[1]);
+    }
+
+    function test_Anyone_CanGetBootnodesCount() public {
+        // First add some bootnodes as the owner
+        string[] memory newBootnodes = new string[](3);
+        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
+        newBootnodes[2] = "/ip4/127.0.0.1/tcp/4003/p2p/QmBootnode3";
+
+        vm.prank(owner);
+        swarmCoordinator.addBootnodes(newBootnodes);
+
+        // Get bootnode count as a regular user
+        vm.prank(user);
+        uint256 count = swarmCoordinator.getBootnodesCount();
+        
+        // Verify the count is correct
+        assertEq(count, 3);
     }
 }
