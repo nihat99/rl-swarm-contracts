@@ -17,8 +17,8 @@ contract SwarmCoordinator is Ownable {
     uint256 _stageStartBlock;
     mapping(address => bytes) _eoaToPeerId;
 
-    // Winner submitter role and winner tracking
-    address private _winnerSubmitter;
+    // Winner manager role and winner tracking
+    address private _winnerManager;
     // round => winner address
     mapping(uint256 => address) private _roundWinners;
     // account => total accrued rewards
@@ -31,12 +31,12 @@ contract SwarmCoordinator is Ownable {
     // Events
     event StageAdvanced(uint256 indexed roundNumber, uint256 newStage);
     event RoundAdvanced(uint256 indexed newRoundNumber);
-    event EOALinked(address indexed eoa, bytes peerId);
+    event PeerRegistered(address indexed eoa, bytes peerId);
     event BootnodeManagerUpdated(address indexed previousManager, address indexed newManager);
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
-    event WinnerSubmitterUpdated(address indexed previousSubmitter, address indexed newSubmitter);
+    event WinnerManagerUpdated(address indexed previousManager, address indexed newManager);
     event WinnerSubmitted(uint256 indexed roundNumber, address indexed winner, uint256 reward);
     event RewardsAccrued(address indexed account, uint256 newTotal);
 
@@ -45,7 +45,7 @@ contract SwarmCoordinator is Ownable {
     error StageOutOfBounds();
     error OnlyBootnodeManager();
     error InvalidBootnodeIndex();
-    error OnlyWinnerSubmitter();
+    error OnlyWinnerManager();
     error InvalidRoundNumber();
     error WinnerAlreadySubmitted();
 
@@ -62,9 +62,9 @@ contract SwarmCoordinator is Ownable {
         _;
     }
 
-    // Winner submitter modifier
-    modifier onlyWinnerSubmitter() {
-        if (msg.sender != _winnerSubmitter) revert OnlyWinnerSubmitter();
+    // Winner manager modifier
+    modifier onlyWinnerManager() {
+        if (msg.sender != _winnerManager) revert OnlyWinnerManager();
         _;
     }
 
@@ -115,12 +115,12 @@ contract SwarmCoordinator is Ownable {
         return (_currentRound, _currentStage);
     }
 
-    function addPeer(bytes calldata peerId) external {
+    function registerPeer(bytes calldata peerId) external {
         address eoa = msg.sender;
 
         _eoaToPeerId[eoa] = peerId;
 
-        emit EOALinked(eoa, peerId);
+        emit PeerRegistered(eoa, peerId);
     }
 
     /**
@@ -205,21 +205,21 @@ contract SwarmCoordinator is Ownable {
     }
 
     /**
-     * @dev Sets a new winner submitter
-     * @param newSubmitter The address of the new winner submitter
+     * @dev Sets a new winner manager
+     * @param newManager The address of the new winner manager
      */
-    function setWinnerSubmitter(address newSubmitter) external onlyOwner {
-        address oldSubmitter = _winnerSubmitter;
-        _winnerSubmitter = newSubmitter;
-        emit WinnerSubmitterUpdated(oldSubmitter, newSubmitter);
+    function setWinnerManager(address newManager) external onlyOwner {
+        address oldManager = _winnerManager;
+        _winnerManager = newManager;
+        emit WinnerManagerUpdated(oldManager, newManager);
     }
 
     /**
-     * @dev Returns the current winner submitter
-     * @return The address of the current winner submitter
+     * @dev Returns the current winner manager
+     * @return The address of the current winner manager
      */
-    function winnerSubmitter() external view returns (address) {
-        return _winnerSubmitter;
+    function winnerManager() external view returns (address) {
+        return _winnerManager;
     }
 
     /**
@@ -228,7 +228,7 @@ contract SwarmCoordinator is Ownable {
      * @param winner The address of the winning peer
      * @param reward The reward value for the winner
      */
-    function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyWinnerSubmitter {
+    function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyWinnerManager {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 

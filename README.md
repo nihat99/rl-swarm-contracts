@@ -1,66 +1,109 @@
-## Foundry
+# RL Swarm Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This repository contains the smart contracts for the RL Swarm project, focusing on coordinating swarm behavior onchain.
 
-Foundry consists of:
+## Overview
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+The main contract `SwarmCoordinator` manages a round-based system for coordinating swarm participants, tracking winners, and managing bootnode infrastructure. The contract includes features for:
 
-## Documentation
+- Round and stage management
+- Peer registration and tracking
+- Bootnode management
+- Winner submission and reward tracking
 
-https://book.getfoundry.sh/
+## Contract Architecture
 
-## Usage
+### Key Components
 
-### Build
+1. **Stage and Round Management**
+   - Rounds progress through multiple stages
+   - Each stage has a configurable duration
+   - Stages automatically advance when their duration is complete
 
-```shell
-$ forge build
+2. **Peer Management**
+   - Users can register their peer IDs by linking them to their EOA
+   - EOA addresses are linked to peer IDs (permission-less for now)
+
+3. **Bootnode Infrastructure**
+   - Managed by a designated bootnode manager
+   - Supports adding, removing, and listing bootnodes
+   - Helps maintain network connectivity
+
+4. **Winner Management**
+   - Designated winner manager can submit winners for each round
+   - Tracks accrued rewards per participant
+   - Prevents duplicate winner submissions
+
+## Roles
+
+1. **Owner**
+   - Can set stage durations and count
+   - Can assign bootnode manager and winner manager roles
+   - Initially deployed contract owner
+
+2. **Bootnode Manager**
+   - Can add and remove bootnodes
+   - Can clear all bootnodes
+   - Initially set to contract owner
+
+3. **Winner Manager**
+   - Can submit winners for completed rounds
+   - Assigns rewards to winners
+
+## Interacting with the Contract
+
+### For Participants
+
+1. Register your peer:
+```solidity
+function registerPeer(bytes calldata peerId) external
 ```
 
-### Test
-
-```shell
-$ forge test
+2. Check your accrued rewards:
+```solidity
+function getAccruedRewards(address account) external view returns (uint256)
 ```
 
-### Format
-
-```shell
-$ forge fmt
+3. View current round and stage:
+```solidity
+function currentRound() external view returns (uint256)
+function currentStage() external view returns (uint256)
 ```
 
-### Gas Snapshots
+### For Administrators
 
-```shell
-$ forge snapshot
+#### Owner
+
+Manages stages and other managers.
+
+```solidity
+function setStageCount(uint256 stageCount_)
+function setStageDuration(uint256 stage_, uint256 stageDuration_)
+// Set Winner Manager
+function setWinnerManager(address newManager)
+// Set Bootnode Manager
+function setBootnodeManager(address newManager)
 ```
 
-### Anvil
+#### Bootnode manager
 
-```shell
-$ anvil
+Manages bootnode list.
+
+```solidity
+function addBootnodes(string[] calldata newBootnodes)
+function removeBootnode(uint256 index)
+function clearBootnodes()
 ```
 
-### Deploy
+#### Winner Manager
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+Submits winners. Can be defined as different smart contract that manages consensus before posting a winner.
+
+```solidity
+function submitWinner(uint256 roundNumber, address winner, uint256 reward)
 ```
 
-### Cast
+## Development
 
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+For more information about the development environment:
+- [Foundry Book](https://book.getfoundry.sh/)
