@@ -17,6 +17,13 @@ contract SwarmCoordinator is Ownable {
     uint256 _stageStartBlock;
     mapping(address => bytes) _eoaToPeerId;
     
+    // Winner submitter role and winner tracking
+    address private _winnerSubmitter;
+    // round => winner address
+    mapping(uint256 => address) private _roundWinners;
+    // account => total accrued rewards
+    mapping(address => uint256) private _accruedRewards;
+    
     // Bootnode manager and bootnodes
     address private _bootnodeManager;
     string[] private _bootnodes;
@@ -29,12 +36,18 @@ contract SwarmCoordinator is Ownable {
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
+    event WinnerSubmitterUpdated(address indexed previousSubmitter, address indexed newSubmitter);
+    event WinnerSubmitted(uint256 indexed roundNumber, address indexed winner, uint256 reward);
+    event RewardsAccrued(address indexed account, uint256 newTotal);
 
     // Errors
     error StageDurationNotElapsed();
     error StageOutOfBounds();
     error OnlyBootnodeManager();
     error InvalidBootnodeIndex();
+    error OnlyWinnerSubmitter();
+    error InvalidRoundNumber();
+    error WinnerAlreadySubmitted();
 
     // Constructor
     constructor() Ownable(msg.sender) {
@@ -46,6 +59,12 @@ contract SwarmCoordinator is Ownable {
     // Bootnode manager modifier
     modifier onlyBootnodeManager() {
         if (msg.sender != _bootnodeManager) revert OnlyBootnodeManager();
+        _;
+    }
+
+    // Winner submitter modifier
+    modifier onlyWinnerSubmitter() {
+        if (msg.sender != _winnerSubmitter) revert OnlyWinnerSubmitter();
         _;
     }
 
@@ -183,5 +202,64 @@ contract SwarmCoordinator is Ownable {
      */
     function getBootnodesCount() external view returns (uint256) {
         return _bootnodes.length;
+    }
+
+    /**
+     * @dev Sets a new winner submitter
+     * @param newSubmitter The address of the new winner submitter
+     */
+    function setWinnerSubmitter(address newSubmitter) external onlyOwner {
+        address oldSubmitter = _winnerSubmitter;
+        _winnerSubmitter = newSubmitter;
+        emit WinnerSubmitterUpdated(oldSubmitter, newSubmitter);
+    }
+
+    /**
+     * @dev Returns the current winner submitter
+     * @return The address of the current winner submitter
+     */
+    function winnerSubmitter() external view returns (address) {
+        return _winnerSubmitter;
+    }
+
+    /**
+     * @dev Submits a winner for a specific round
+     * @param roundNumber The round number for which to submit the winner
+     * @param winner The address of the winning peer
+     * @param reward The reward value for the winner
+     */
+    function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyWinnerSubmitter {
+        // Check if round number is valid (must be less than or equal to current round)
+        if (roundNumber > _currentRound) revert InvalidRoundNumber();
+        
+        // Check if winner was already submitted for this round
+        if (_roundWinners[roundNumber] != address(0)) revert WinnerAlreadySubmitted();
+        
+        // Record the winner
+        _roundWinners[roundNumber] = winner;
+        
+        // Update accrued rewards
+        _accruedRewards[winner] += reward;
+        
+        emit WinnerSubmitted(roundNumber, winner, reward);
+        emit RewardsAccrued(winner, _accruedRewards[winner]);
+    }
+
+    /**
+     * @dev Gets the winner for a specific round
+     * @param roundNumber The round number to query
+     * @return The address of the winner for that round (address(0) if no winner set)
+     */
+    function getRoundWinner(uint256 roundNumber) external view returns (address) {
+        return _roundWinners[roundNumber];
+    }
+
+    /**
+     * @dev Gets the total accrued rewards for an account
+     * @param account The address to query
+     * @return The total rewards accrued by the account
+     */
+    function getAccruedRewards(address account) external view returns (uint256) {
+        return _accruedRewards[account];
     }
 }
