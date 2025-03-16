@@ -7,25 +7,26 @@ import {SwarmCoordinator} from "../src/SwarmCoordinator.sol";
 contract SwarmCoordinatorTest is Test {
     SwarmCoordinator public swarmCoordinator;
 
-    address owner = makeAddr("owner");
-    address bootnodeManager = makeAddr("bootnodeManager");
-    address user = makeAddr("user");
+    address _owner = makeAddr("owner");
+    address _bootnodeManager = makeAddr("bootnodeManager");
+    address _winnerManager = makeAddr("winnerManager");
+    address _user = makeAddr("user");
 
     function setUp() public {
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator = new SwarmCoordinator();
         vm.stopPrank();
     }
 
-    function test_SwarmCoordinator_IsCorrectlyDeployed() public {
-        assertEq(swarmCoordinator.owner(), address(owner));
+    function test_SwarmCoordinator_IsCorrectlyDeployed() public view {
+        assertEq(swarmCoordinator.owner(), address(_owner));
     }
 
     function test_Owner_CanSetStageDurations_Successfully() public {
         uint256 stage_ = 5;
         uint256 stageDuration_ = 100;
 
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         // We make sure we got enough stages set to avoid an out of bounds error
         swarmCoordinator.setStageCount(stage_ + 1);
         swarmCoordinator.setStageDuration(stage_, stageDuration_);
@@ -35,7 +36,7 @@ contract SwarmCoordinatorTest is Test {
     function test_Owner_CannotSetStageDuration_ForOutOfBoundsStage() public {
         uint256 stageCount_ = 3;
 
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator.setStageCount(stageCount_);
         vm.expectRevert(SwarmCoordinator.StageOutOfBounds.selector);
         swarmCoordinator.setStageDuration(stageCount_, 100);
@@ -48,7 +49,7 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Owner_CanSetStageCount_Successfully(uint256 stageCount) public {
-        vm.prank(owner);
+        vm.prank(_owner);
         swarmCoordinator.setStageCount(stageCount);
         assertEq(stageCount, swarmCoordinator.stageCount());
     }
@@ -58,7 +59,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.setStageCount(stageCount);
     }
 
-    function test_Anyone_Can_QueryCurrentRound() public {
+    function test_Anyone_CanQuery_CurrentRound() public view {
         uint256 currentRound = swarmCoordinator.currentRound();
         assertEq(currentRound, 0);
     }
@@ -67,7 +68,7 @@ contract SwarmCoordinatorTest is Test {
         uint256 stageCount_ = 2;
         uint256 stageDuration_ = 100;
 
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator.setStageCount(stageCount_);
         swarmCoordinator.setStageDuration(0, stageDuration_);
         swarmCoordinator.setStageDuration(1, stageDuration_);
@@ -84,7 +85,7 @@ contract SwarmCoordinatorTest is Test {
     function test_Nobody_CanAdvanceStage_IfNotEnoughTimeHasPassed() public {
         uint256 stageDuration_ = 100;
 
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
         swarmCoordinator.setStageDuration(0, stageDuration_);
         vm.stopPrank();
@@ -99,7 +100,7 @@ contract SwarmCoordinatorTest is Test {
         uint256 stageCount_ = 3;
         uint256 stageDuration_ = 100;
 
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator.setStageCount(stageCount_);
         swarmCoordinator.setStageDuration(0, stageDuration_);
         swarmCoordinator.setStageDuration(1, stageDuration_);
@@ -125,8 +126,8 @@ contract SwarmCoordinatorTest is Test {
 
         vm.startPrank(user);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.EOALinked(user, peerId);
-        swarmCoordinator.addPeer(peerId);
+        emit SwarmCoordinator.PeerRegistered(user, peerId);
+        swarmCoordinator.registerPeer(peerId);
         vm.stopPrank();
 
         // Verify the mapping was updated correctly using the getter function
@@ -134,23 +135,23 @@ contract SwarmCoordinatorTest is Test {
         assertEq(keccak256(storedPeerId), keccak256(peerId), "Peer ID not stored correctly");
     }
 
-    function test_AddPeer_WithDifferentPeerIds() public {
+    function test_Anyone_CanRegister_DifferentPeerIds() public {
         address user1 = makeAddr("user1");
         address user2 = makeAddr("user2");
-        bytes memory peerId1 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
-        bytes memory peerId2 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5M");
+        bytes memory peerId1 = bytes("peerId1");
+        bytes memory peerId2 = bytes("peerId2");
 
-        // First user adds peer
+        // First user registers peer
         vm.prank(user1);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.EOALinked(user1, peerId1);
-        swarmCoordinator.addPeer(peerId1);
+        emit SwarmCoordinator.PeerRegistered(user1, peerId1);
+        swarmCoordinator.registerPeer(peerId1);
 
-        // Second user adds peer
+        // Second user registers peer
         vm.prank(user2);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.EOALinked(user2, peerId2);
-        swarmCoordinator.addPeer(peerId2);
+        emit SwarmCoordinator.PeerRegistered(user2, peerId2);
+        swarmCoordinator.registerPeer(peerId2);
 
         // Verify the mappings were updated correctly
         bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user1);
@@ -159,16 +160,16 @@ contract SwarmCoordinatorTest is Test {
         assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Peer ID 2 not stored correctly");
     }
 
-    function test_AddPeer_CanUpdateExistingMapping() public {
+    function test_Anyone_CanUpdate_ItsOwnPeerId() public {
         address user = makeAddr("user");
-        bytes memory peerId1 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
-        bytes memory peerId2 = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5M");
+        bytes memory peerId1 = bytes("peerId1");
+        bytes memory peerId2 = bytes("peerId2");
 
-        // User adds first peer
+        // User registers first peer
         vm.prank(user);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.EOALinked(user, peerId1);
-        swarmCoordinator.addPeer(peerId1);
+        emit SwarmCoordinator.PeerRegistered(user, peerId1);
+        swarmCoordinator.registerPeer(peerId1);
 
         // Verify first peer ID was stored correctly
         bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user);
@@ -177,8 +178,8 @@ contract SwarmCoordinatorTest is Test {
         // User updates to second peer
         vm.prank(user);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.EOALinked(user, peerId2);
-        swarmCoordinator.addPeer(peerId2);
+        emit SwarmCoordinator.PeerRegistered(user, peerId2);
+        swarmCoordinator.registerPeer(peerId2);
 
         // Verify second peer ID overwrote the first one
         bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user);
@@ -187,34 +188,34 @@ contract SwarmCoordinatorTest is Test {
     }
 
     // Bootnode tests
-    function test_Owner_IsBootnodeManager_ByDefault() public {
-        assertEq(swarmCoordinator.bootnodeManager(), owner);
+    function test_SwarmCoordinatorDeployment_SetsBootnodeManager_ToOwner() public view {
+        assertEq(swarmCoordinator.bootnodeManager(), _owner);
     }
 
-    function test_Owner_CanSetBootnodeManager() public {
-        vm.startPrank(owner);
+    function test_Owner_CanSet_BootnodeManager() public {
+        vm.startPrank(_owner);
         vm.expectEmit(true, true, false, false);
-        emit SwarmCoordinator.BootnodeManagerUpdated(owner, bootnodeManager);
-        swarmCoordinator.setBootnodeManager(bootnodeManager);
+        emit SwarmCoordinator.BootnodeManagerUpdated(_owner, _bootnodeManager);
+        swarmCoordinator.setBootnodeManager(_bootnodeManager);
         vm.stopPrank();
 
-        assertEq(swarmCoordinator.bootnodeManager(), bootnodeManager);
+        assertEq(swarmCoordinator.bootnodeManager(), _bootnodeManager);
     }
 
-    function test_NonOwner_CannotSetBootnodeManager() public {
-        vm.prank(user);
+    function test_NonOwner_CannotSet_BootnodeManager() public {
+        vm.prank(_user);
         vm.expectRevert();
-        swarmCoordinator.setBootnodeManager(bootnodeManager);
+        swarmCoordinator.setBootnodeManager(_bootnodeManager);
     }
 
-    function test_BootnodeManager_CanAddBootnodes() public {
+    function test_BootnodeManager_CanAdd_Bootnodes() public {
         string[] memory newBootnodes = new string[](2);
         newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
         newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
 
-        vm.prank(owner);
+        vm.prank(_owner);
         vm.expectEmit(true, false, false, true);
-        emit SwarmCoordinator.BootnodesAdded(owner, 2);
+        emit SwarmCoordinator.BootnodesAdded(_owner, 2);
         swarmCoordinator.addBootnodes(newBootnodes);
 
         string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
@@ -227,7 +228,7 @@ contract SwarmCoordinatorTest is Test {
         string[] memory newBootnodes = new string[](1);
         newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
 
-        vm.prank(user);
+        vm.prank(_user);
         vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
         swarmCoordinator.addBootnodes(newBootnodes);
     }
@@ -239,12 +240,12 @@ contract SwarmCoordinatorTest is Test {
         newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
         newBootnodes[2] = "/ip4/127.0.0.1/tcp/4003/p2p/QmBootnode3";
 
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Now remove the middle one
         vm.expectEmit(true, false, false, true);
-        emit SwarmCoordinator.BootnodeRemoved(owner, 1);
+        emit SwarmCoordinator.BootnodeRemoved(_owner, 1);
         swarmCoordinator.removeBootnode(1);
         vm.stopPrank();
 
@@ -257,7 +258,7 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_BootnodeManager_CannotRemoveInvalidIndex() public {
-        vm.prank(owner);
+        vm.prank(_owner);
         vm.expectRevert(SwarmCoordinator.InvalidBootnodeIndex.selector);
         swarmCoordinator.removeBootnode(0); // No bootnodes yet
     }
@@ -265,13 +266,13 @@ contract SwarmCoordinatorTest is Test {
     function test_NonBootnodeManager_CannotRemoveBootnode() public {
         // First add a bootnode as the owner
         string[] memory newBootnodes = new string[](1);
-        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+        newBootnodes[0] = "bootnode1";
 
-        vm.prank(owner);
+        vm.prank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Try to remove as non-manager
-        vm.prank(user);
+        vm.prank(_user);
         vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
         swarmCoordinator.removeBootnode(0);
     }
@@ -279,15 +280,15 @@ contract SwarmCoordinatorTest is Test {
     function test_BootnodeManager_CanClearAllBootnodes() public {
         // First add some bootnodes
         string[] memory newBootnodes = new string[](2);
-        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
-        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
+        newBootnodes[0] = "bootnode1";
+        newBootnodes[1] = "bootnode2";
 
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Now clear them
         vm.expectEmit(true, false, false, false);
-        emit SwarmCoordinator.AllBootnodesCleared(owner);
+        emit SwarmCoordinator.AllBootnodesCleared(_owner);
         swarmCoordinator.clearBootnodes();
         vm.stopPrank();
 
@@ -299,13 +300,13 @@ contract SwarmCoordinatorTest is Test {
     function test_NonBootnodeManager_CannotClearBootnodes() public {
         // First add a bootnode as the owner
         string[] memory newBootnodes = new string[](1);
-        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
+        newBootnodes[0] = "bootnode1";
 
-        vm.prank(owner);
+        vm.prank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Try to clear as non-manager
-        vm.prank(user);
+        vm.prank(_user);
         vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
         swarmCoordinator.clearBootnodes();
     }
@@ -313,14 +314,14 @@ contract SwarmCoordinatorTest is Test {
     function test_Anyone_CanGetBootnodes() public {
         // First add some bootnodes as the owner
         string[] memory newBootnodes = new string[](2);
-        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
-        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
+        newBootnodes[0] = "bootnode1";
+        newBootnodes[1] = "bootnode2";
 
-        vm.prank(owner);
+        vm.prank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Get bootnodes as a regular user
-        vm.prank(user);
+        vm.prank(_user);
         string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
 
         // Verify the bootnodes are accessible
@@ -332,53 +333,57 @@ contract SwarmCoordinatorTest is Test {
     function test_Anyone_CanGetBootnodesCount() public {
         // First add some bootnodes as the owner
         string[] memory newBootnodes = new string[](3);
-        newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
-        newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
-        newBootnodes[2] = "/ip4/127.0.0.1/tcp/4003/p2p/QmBootnode3";
+        newBootnodes[0] = "bootnode1";
+        newBootnodes[1] = "bootnode2";
+        newBootnodes[2] = "bootnode3";
 
-        vm.prank(owner);
+        vm.prank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Get bootnode count as a regular user
-        vm.prank(user);
+        vm.prank(_user);
         uint256 count = swarmCoordinator.getBootnodesCount();
 
         // Verify the count is correct
         assertEq(count, 3);
     }
 
-    // Winner submitter tests
-    function test_Owner_CanSetWinnerSubmitter() public {
-        address submitter = makeAddr("submitter");
+    // Winner manager tests
+    function test_SwarmCoordinatorDeployment_SetsWinnerManager_ToOwner() public view {
+        assertEq(swarmCoordinator.winnerManager(), _owner);
+    }
 
-        vm.startPrank(owner);
+    function test_Owner_CanSet_WinnerManager() public {
+        address manager = makeAddr("manager");
+
+        vm.startPrank(_owner);
         vm.expectEmit(true, true, false, false);
-        emit SwarmCoordinator.WinnerSubmitterUpdated(address(0), submitter);
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        emit SwarmCoordinator.WinnerManagerUpdated(_owner, manager);
+        swarmCoordinator.setWinnerManager(manager);
         vm.stopPrank();
 
-        assertEq(swarmCoordinator.winnerSubmitter(), submitter);
+        assertEq(swarmCoordinator.winnerManager(), manager);
     }
 
-    function test_NonOwner_CannotSetWinnerSubmitter() public {
-        address submitter = makeAddr("submitter");
+    function test_NonOwner_CannotSet_WinnerManager() public {
+        address manager = makeAddr("manager");
 
-        vm.prank(user);
+        vm.prank(_user);
         vm.expectRevert();
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        swarmCoordinator.setWinnerManager(manager);
     }
 
-    function test_WinnerSubmitter_CanSubmitWinner() public {
-        address submitter = makeAddr("submitter");
+    function test_WinnerManager_CanSubmit_Winner() public {
+        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up winner submitter
-        vm.prank(owner);
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        // Set up winner manager
+        vm.prank(_owner);
+        swarmCoordinator.setWinnerManager(manager);
 
         // Submit winner for round 0
-        vm.prank(submitter);
+        vm.prank(manager);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.WinnerSubmitted(0, winner, reward);
         swarmCoordinator.submitWinner(0, winner, reward);
@@ -388,41 +393,41 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getAccruedRewards(winner), reward);
     }
 
-    function test_NonWinnerSubmitter_CannotSubmitWinner() public {
+    function test_NonWinnerManager_CannotSubmit_Winner() public {
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        vm.prank(user);
-        vm.expectRevert(SwarmCoordinator.OnlyWinnerSubmitter.selector);
+        vm.prank(_user);
+        vm.expectRevert(SwarmCoordinator.OnlyWinnerManager.selector);
         swarmCoordinator.submitWinner(0, winner, reward);
     }
 
-    function test_CannotSubmitWinner_ForFutureRound() public {
-        address submitter = makeAddr("submitter");
+    function test_Nobody_CanSubmitWinner_ForFutureRound() public {
+        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up winner submitter
-        vm.prank(owner);
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        // Set up winner manager
+        vm.prank(_owner);
+        swarmCoordinator.setWinnerManager(manager);
 
         // Try to submit winner for future round
-        vm.prank(submitter);
+        vm.prank(manager);
         vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
         swarmCoordinator.submitWinner(1, winner, reward);
     }
 
-    function test_CannotSubmitWinner_Twice() public {
-        address submitter = makeAddr("submitter");
+    function test_Manager_CannotSubmitWinner_Twice() public {
+        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up winner submitter
-        vm.prank(owner);
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        // Set up winner manager
+        vm.prank(_owner);
+        swarmCoordinator.setWinnerManager(manager);
 
         // Submit winner first time
-        vm.startPrank(submitter);
+        vm.startPrank(manager);
         swarmCoordinator.submitWinner(0, winner, reward);
 
         // Try to submit different winner for same round
@@ -432,22 +437,22 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
     }
 
-    function test_AccruedRewards_Accumulate() public {
-        address submitter = makeAddr("submitter");
+    function test_AccruedRewards_Accumulate_Successfully() public {
+        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
-        // Set up winner submitter
-        vm.prank(owner);
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        // Set up winner manager
+        vm.prank(_owner);
+        swarmCoordinator.setWinnerManager(manager);
 
         // Submit winner for round 0
-        vm.prank(submitter);
+        vm.prank(manager);
         swarmCoordinator.submitWinner(0, winner, reward1);
 
         // Advance to round 1
-        vm.startPrank(owner);
+        vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
         swarmCoordinator.setStageDuration(0, 100);
         vm.roll(block.number + 101);
@@ -455,7 +460,7 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
 
         // Submit winner for round 1
-        vm.prank(submitter);
+        vm.prank(manager);
         swarmCoordinator.submitWinner(1, winner, reward2);
 
         // Verify accrued rewards
@@ -463,39 +468,39 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanGetRoundWinner() public {
-        address submitter = makeAddr("submitter");
+        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up winner submitter and submit winner
-        vm.prank(owner);
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        // Set up winner manager and submit winner
+        vm.prank(_owner);
+        swarmCoordinator.setWinnerManager(manager);
 
-        vm.prank(submitter);
+        vm.prank(manager);
         swarmCoordinator.submitWinner(0, winner, reward);
 
         // Get winner as regular user
-        vm.prank(user);
+        vm.prank(_user);
         address roundWinner = swarmCoordinator.getRoundWinner(0);
 
         // Verify winner
         assertEq(roundWinner, winner);
     }
 
-    function test_Anyone_CanGetAccruedRewards() public {
-        address submitter = makeAddr("submitter");
+    function test_Anyone_CanGet_AccruedRewards() public {
+        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up winner submitter and submit winner
-        vm.prank(owner);
-        swarmCoordinator.setWinnerSubmitter(submitter);
+        // Set up winner manager and submit winner
+        vm.prank(_owner);
+        swarmCoordinator.setWinnerManager(manager);
 
-        vm.prank(submitter);
+        vm.prank(manager);
         swarmCoordinator.submitWinner(0, winner, reward);
 
         // Get accrued rewards as regular user
-        vm.prank(user);
+        vm.prank(_user);
         uint256 accruedRewards = swarmCoordinator.getAccruedRewards(winner);
 
         // Verify rewards
