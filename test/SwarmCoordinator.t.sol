@@ -9,6 +9,7 @@ contract SwarmCoordinatorTest is Test {
 
     address owner = makeAddr("owner");
     address bootnodeManager = makeAddr("bootnodeManager");
+    address winnerManager = makeAddr("winnerManager");
     address user = makeAddr("user");
 
     function setUp() public {
@@ -19,6 +20,14 @@ contract SwarmCoordinatorTest is Test {
 
     function test_SwarmCoordinator_IsCorrectlyDeployed() public {
         assertEq(swarmCoordinator.owner(), address(owner));
+    }
+
+    function test_SwarmCoordinatorDeployment_SetsBootnodeManager() public {
+        assertEq(swarmCoordinator.bootnodeManager(), owner);
+    }
+
+    function test_SwarmCoordinatorDeployment_SetsWinnerManager() public {
+        assertEq(swarmCoordinator.winnerManager(), owner);
     }
 
     function test_Owner_CanSetStageDurations_Successfully() public {
@@ -353,7 +362,7 @@ contract SwarmCoordinatorTest is Test {
 
         vm.startPrank(owner);
         vm.expectEmit(true, true, false, false);
-        emit SwarmCoordinator.WinnerManagerUpdated(address(0), manager);
+        emit SwarmCoordinator.WinnerManagerUpdated(owner, manager);
         swarmCoordinator.setWinnerManager(manager);
         vm.stopPrank();
 

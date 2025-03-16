@@ -53,7 +53,9 @@ contract SwarmCoordinator is Ownable {
     constructor() Ownable(msg.sender) {
         _stageStartBlock = block.number;
         _bootnodeManager = msg.sender; // Initially set the owner as the bootnode manager
+        _winnerManager = msg.sender; // Initially set the owner as the winner manager
         emit BootnodeManagerUpdated(address(0), msg.sender);
+        emit WinnerManagerUpdated(address(0), msg.sender);
     }
 
     // Bootnode manager modifier
