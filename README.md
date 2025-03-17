@@ -84,6 +84,7 @@ function setStageCount(uint256 stageCount_)
 function setStageDuration(uint256 stage_, uint256 stageDuration_)
 function setWinnerManager(address newManager)
 function setBootnodeManager(address newManager)
+function setJudge(address newJudge)
 ```
 
 #### Bootnode manager

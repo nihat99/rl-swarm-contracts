@@ -35,7 +35,7 @@ contract SwarmCoordinator is Ownable {
 
     // Winner management state
     // Address authorized to manage winners
-    address private _winnerManager;
+    address private _judge;
     // Maps round numbers to winner addresses
     mapping(uint256 => address) private _roundWinners;
     // Maps accounts to their total accumulated rewards
@@ -65,7 +65,7 @@ contract SwarmCoordinator is Ownable {
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
-    event WinnerManagerUpdated(address indexed previousManager, address indexed newManager);
+    event JudgeUpdated(address indexed previousJudge, address indexed newJudge);
     event WinnerSubmitted(uint256 indexed roundNumber, address indexed winner, uint256 reward);
     event RewardsAccrued(address indexed account, uint256 newTotal);
 
@@ -84,7 +84,7 @@ contract SwarmCoordinator is Ownable {
     error StageOutOfBounds();
     error OnlyBootnodeManager();
     error InvalidBootnodeIndex();
-    error OnlyWinnerManager();
+    error OnlyJudge();
     error InvalidRoundNumber();
     error WinnerAlreadySubmitted();
 
@@ -105,9 +105,9 @@ contract SwarmCoordinator is Ownable {
         _;
     }
 
-    // Winner manager modifier
-    modifier onlyWinnerManager() {
-        if (msg.sender != _winnerManager) revert OnlyWinnerManager();
+    // Judge modifier
+    modifier onlyJudge() {
+        if (msg.sender != _judge) revert OnlyJudge();
         _;
     }
 
@@ -125,9 +125,9 @@ contract SwarmCoordinator is Ownable {
     constructor() Ownable(msg.sender) {
         _stageStartBlock = block.number;
         _bootnodeManager = msg.sender; // Initially set the owner as the bootnode manager
-        _winnerManager = msg.sender; // Initially set the owner as the winner manager
+        _judge = msg.sender; // Initially set the owner as the judge
         emit BootnodeManagerUpdated(address(0), msg.sender);
-        emit WinnerManagerUpdated(address(0), msg.sender);
+        emit JudgeUpdated(address(0), msg.sender);
     }
 
     // .---------------------------------------------------------------.
@@ -255,6 +255,7 @@ contract SwarmCoordinator is Ownable {
     /**
      * @dev Sets a new bootnode manager
      * @param newManager The address of the new bootnode manager
+     * @notice Only callable by the contract owner
      */
     function setBootnodeManager(address newManager) external onlyOwner {
         address oldManager = _bootnodeManager;
@@ -339,22 +340,22 @@ contract SwarmCoordinator is Ownable {
     // '---------------------------------------------------------------------------'
 
     /**
-     * @dev Sets a new winner manager
-     * @param newManager The address of the new winner manager
+     * @dev Sets a new judge
+     * @param newJudge The address of the new judge
      * @notice Only callable by the contract owner
      */
-    function setWinnerManager(address newManager) external onlyOwner {
-        address oldManager = _winnerManager;
-        _winnerManager = newManager;
-        emit WinnerManagerUpdated(oldManager, newManager);
+    function setJudge(address newJudge) external onlyOwner {
+        address oldJudge = _judge;
+        _judge = newJudge;
+        emit JudgeUpdated(oldJudge, newJudge);
     }
 
     /**
-     * @dev Returns the current winner manager address
-     * @return The address of the current winner manager
+     * @dev Returns the current judge address
+     * @return The address of the current judge
      */
-    function winnerManager() external view returns (address) {
-        return _winnerManager;
+    function judge() external view returns (address) {
+        return _judge;
     }
 
     /**
@@ -362,9 +363,9 @@ contract SwarmCoordinator is Ownable {
      * @param roundNumber The round number for which to submit the winner
      * @param winner The address of the winning peer
      * @param reward The reward value for the winner
-     * @notice Only callable by the winner manager
+     * @notice Only callable by the judge
      */
-    function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyWinnerManager {
+    function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyJudge {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
