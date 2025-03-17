@@ -40,8 +40,6 @@ contract SwarmCoordinator is Ownable {
     uint256 private _judgeCount;
     // Maps round numbers to winner addresses
     mapping(uint256 => address) private _roundWinners;
-    // Maps accounts to their total accumulated rewards
-    mapping(address => uint256) private _accruedRewards;
 
     // Bootnode management state
     // Address authorized to manage bootnodes
@@ -69,8 +67,7 @@ contract SwarmCoordinator is Ownable {
     event AllBootnodesCleared(address indexed manager);
     event JudgeAdded(address indexed judge);
     event JudgeRemoved(address indexed judge);
-    event WinnerSubmitted(uint256 indexed roundNumber, address indexed winner, uint256 reward);
-    event RewardsAccrued(address indexed account, uint256 newTotal);
+    event WinnerSubmitted(uint256 indexed roundNumber, address indexed winner);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -110,7 +107,7 @@ contract SwarmCoordinator is Ownable {
 
     // Judge modifier
     modifier onlyJudge() {
-        if (!_judges[msg.sender]) revert NotJudge();
+        require(_judges[msg.sender], NotJudge());
         _;
     }
 
@@ -384,13 +381,12 @@ contract SwarmCoordinator is Ownable {
     }
 
     /**
-     * @dev Submits a winner for a specific round and assigns their reward
+     * @dev Submits a winner for a specific round
      * @param roundNumber The round number for which to submit the winner
      * @param winner The address of the winning peer
-     * @param reward The reward value for the winner
      * @notice Only callable by the judge
      */
-    function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyJudge {
+    function submitWinner(uint256 roundNumber, address winner) external onlyJudge {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
@@ -400,11 +396,7 @@ contract SwarmCoordinator is Ownable {
         // Record the winner
         _roundWinners[roundNumber] = winner;
 
-        // Update accrued rewards
-        _accruedRewards[winner] += reward;
-
-        emit WinnerSubmitted(roundNumber, winner, reward);
-        emit RewardsAccrued(winner, _accruedRewards[winner]);
+        emit WinnerSubmitted(roundNumber, winner);
     }
 
     /**
@@ -414,14 +406,5 @@ contract SwarmCoordinator is Ownable {
      */
     function getRoundWinner(uint256 roundNumber) external view returns (address) {
         return _roundWinners[roundNumber];
-    }
-
-    /**
-     * @dev Gets the total accrued rewards for an account
-     * @param account The address to query
-     * @return The total rewards accrued by the account
-     */
-    function getAccruedRewards(address account) external view returns (uint256) {
-        return _accruedRewards[account];
     }
 }

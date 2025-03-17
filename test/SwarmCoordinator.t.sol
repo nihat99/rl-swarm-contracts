@@ -419,7 +419,6 @@ contract SwarmCoordinatorTest is Test {
 
     function test_Judge_CanSubmit_Winner() public {
         address winner = makeAddr("winner");
-        uint256 reward = 100;
 
         // Add judge
         vm.prank(_owner);
@@ -428,26 +427,23 @@ contract SwarmCoordinatorTest is Test {
         // Submit winner for round 0
         vm.prank(_judge1);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.WinnerSubmitted(0, winner, reward);
-        swarmCoordinator.submitWinner(0, winner, reward);
+        emit SwarmCoordinator.WinnerSubmitted(0, winner);
+        swarmCoordinator.submitWinner(0, winner);
 
-        // Verify winner and accrued rewards
+        // Verify winner
         assertEq(swarmCoordinator.getRoundWinner(0), winner);
-        assertEq(swarmCoordinator.getAccruedRewards(winner), reward);
     }
 
     function test_NonJudge_CannotSubmit_Winner() public {
         address winner = makeAddr("winner");
-        uint256 reward = 100;
 
         vm.prank(_user);
         vm.expectRevert(SwarmCoordinator.NotJudge.selector);
-        swarmCoordinator.submitWinner(0, winner, reward);
+        swarmCoordinator.submitWinner(0, winner);
     }
 
     function test_Nobody_CanSubmitWinner_ForFutureRound() public {
         address winner = makeAddr("winner");
-        uint256 reward = 100;
 
         // Add judge
         vm.prank(_owner);
@@ -456,12 +452,11 @@ contract SwarmCoordinatorTest is Test {
         // Try to submit winner for future round
         vm.prank(_judge1);
         vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
-        swarmCoordinator.submitWinner(1, winner, reward);
+        swarmCoordinator.submitWinner(1, winner);
     }
 
     function test_AnyJudge_CannotSubmitWinner_Twice() public {
         address winner = makeAddr("winner");
-        uint256 reward = 100;
 
         // Add two judges
         vm.startPrank(_owner);
@@ -471,56 +466,24 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winner first time with first judge
         vm.prank(_judge1);
-        swarmCoordinator.submitWinner(0, winner, reward);
+        swarmCoordinator.submitWinner(0, winner);
 
         // Try to submit different winner for same round with second judge
         address winner2 = makeAddr("winner2");
         vm.prank(_judge2);
         vm.expectRevert(SwarmCoordinator.WinnerAlreadySubmitted.selector);
-        swarmCoordinator.submitWinner(0, winner2, reward);
-    }
-
-    function test_AccruedRewards_Accumulate_Successfully() public {
-        address winner = makeAddr("winner");
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
-
-        // Add two judges
-        vm.startPrank(_owner);
-        swarmCoordinator.addJudge(_judge1);
-        swarmCoordinator.addJudge(_judge2);
-        vm.stopPrank();
-
-        // Submit winner for round 0 with first judge
-        vm.prank(_judge1);
-        swarmCoordinator.submitWinner(0, winner, reward1);
-
-        // Advance to round 1
-        vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, 100);
-        vm.roll(block.number + 101);
-        swarmCoordinator.updateStageAndRound();
-        vm.stopPrank();
-
-        // Submit winner for round 1 with second judge
-        vm.prank(_judge2);
-        swarmCoordinator.submitWinner(1, winner, reward2);
-
-        // Verify accrued rewards
-        assertEq(swarmCoordinator.getAccruedRewards(winner), reward1 + reward2);
+        swarmCoordinator.submitWinner(0, winner2);
     }
 
     function test_Anyone_CanGetRoundWinner() public {
         address winner = makeAddr("winner");
-        uint256 reward = 100;
 
         // Add judge and submit winner
         vm.prank(_owner);
         swarmCoordinator.addJudge(_judge1);
 
         vm.prank(_judge1);
-        swarmCoordinator.submitWinner(0, winner, reward);
+        swarmCoordinator.submitWinner(0, winner);
 
         // Get winner as regular user
         vm.prank(_user);
@@ -528,24 +491,5 @@ contract SwarmCoordinatorTest is Test {
 
         // Verify winner
         assertEq(roundWinner, winner);
-    }
-
-    function test_Anyone_CanGet_AccruedRewards() public {
-        address winner = makeAddr("winner");
-        uint256 reward = 100;
-
-        // Add judge and submit winner
-        vm.prank(_owner);
-        swarmCoordinator.addJudge(_judge1);
-
-        vm.prank(_judge1);
-        swarmCoordinator.submitWinner(0, winner, reward);
-
-        // Get accrued rewards as regular user
-        vm.prank(_user);
-        uint256 accruedRewards = swarmCoordinator.getAccruedRewards(winner);
-
-        // Verify rewards
-        assertEq(accruedRewards, reward);
     }
 }

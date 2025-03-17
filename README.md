@@ -105,7 +105,7 @@ function clearBootnodes()
 Submit winners. Can be defined as different smart contracts that manage consensus before posting a winner.
 
 ```solidity
-function submitWinner(uint256 roundNumber, address winner, uint256 reward)
+function submitWinner(uint256 roundNumber, address winner)
 function isJudge(address account) external view returns (bool)
 function getJudgeCount() external view returns (uint256)
 ```
