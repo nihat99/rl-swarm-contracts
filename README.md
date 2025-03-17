@@ -38,7 +38,8 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 
 1. **Owner**
    - Can set stage durations and count
-   - Can assign bootnode manager and winner manager roles
+   - Can assign bootnode manager role
+   - Can add and remove judges
    - Initially deployed contract owner
 
 2. **Bootnode Manager**
@@ -46,9 +47,11 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
    - Can clear all bootnodes
    - Initially set to contract owner
 
-3. **Winner Manager**
+3. **Judges**
    - Can submit winners for completed rounds
    - Assigns rewards to winners
+   - Multiple judges can be active simultaneously
+   - Initially set to contract owner
 
 ## Interacting with the Contract
 
@@ -82,9 +85,9 @@ Manages stages and other managers.
 ```solidity
 function setStageCount(uint256 stageCount_)
 function setStageDuration(uint256 stage_, uint256 stageDuration_)
-function setWinnerManager(address newManager)
 function setBootnodeManager(address newManager)
-function setJudge(address newJudge)
+function addJudge(address newJudge)
+function removeJudge(address judgeToRemove)
 ```
 
 #### Bootnode manager
@@ -97,12 +100,14 @@ function removeBootnode(uint256 index)
 function clearBootnodes()
 ```
 
-#### Winner Manager
+#### Judges
 
-Submits winners. Can be defined as different smart contract that manages consensus before posting a winner.
+Submit winners. Can be defined as different smart contracts that manage consensus before posting a winner.
 
 ```solidity
 function submitWinner(uint256 roundNumber, address winner, uint256 reward)
+function isJudge(address account) external view returns (bool)
+function getJudgeCount() external view returns (uint256)
 ```
 
 ## Development

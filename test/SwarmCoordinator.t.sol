@@ -9,7 +9,8 @@ contract SwarmCoordinatorTest is Test {
 
     address _owner = makeAddr("owner");
     address _bootnodeManager = makeAddr("bootnodeManager");
-    address _judge = makeAddr("judge");
+    address _judge1 = makeAddr("judge1");
+    address _judge2 = makeAddr("judge2");
     address _user = makeAddr("user");
 
     function setUp() public {
@@ -349,41 +350,83 @@ contract SwarmCoordinatorTest is Test {
     }
 
     // Judge tests
-    function test_SwarmCoordinatorDeployment_SetsJudge_ToOwner() public view {
-        assertEq(swarmCoordinator.judge(), _owner);
+    function test_SwarmCoordinatorDeployment_SetsOwner_AsJudge() public view {
+        assertTrue(swarmCoordinator.isJudge(_owner));
+        assertEq(swarmCoordinator.getJudgeCount(), 1);
     }
 
-    function test_Owner_CanSet_Judge() public {
-        address manager = makeAddr("manager");
-
+    function test_Owner_CanAdd_Judge() public {
         vm.startPrank(_owner);
         vm.expectEmit(true, true, false, false);
-        emit SwarmCoordinator.JudgeUpdated(_owner, manager);
-        swarmCoordinator.setJudge(manager);
+        emit SwarmCoordinator.JudgeAdded(_judge1);
+        swarmCoordinator.addJudge(_judge1);
         vm.stopPrank();
 
-        assertEq(swarmCoordinator.judge(), manager);
+        assertTrue(swarmCoordinator.isJudge(_judge1));
+        assertEq(swarmCoordinator.getJudgeCount(), 2); // owner and judge1
     }
 
-    function test_NonOwner_CannotSet_Judge() public {
-        address manager = makeAddr("manager");
+    function test_Owner_CanRemove_Judge() public {
+        // First add a judge
+        vm.prank(_owner);
+        swarmCoordinator.addJudge(_judge1);
 
+        // Then remove the judge
+        vm.startPrank(_owner);
+        vm.expectEmit(true, true, false, false);
+        emit SwarmCoordinator.JudgeRemoved(_judge1);
+        swarmCoordinator.removeJudge(_judge1);
+        vm.stopPrank();
+
+        assertFalse(swarmCoordinator.isJudge(_judge1));
+        assertEq(swarmCoordinator.getJudgeCount(), 1);
+    }
+
+    function test_NonOwner_CannotAddJudge() public {
         vm.prank(_user);
         vm.expectRevert();
-        swarmCoordinator.setJudge(manager);
+        swarmCoordinator.addJudge(_judge1);
+        assertEq(swarmCoordinator.getJudgeCount(), 1); // Count should remain unchanged
+    }
+
+    function test_NonOwner_CannotRemoveJudge() public {
+        // First add a judge as owner
+        vm.prank(_owner);
+        swarmCoordinator.addJudge(_judge1);
+
+        // Try to remove as non-owner
+        vm.prank(_user);
+        vm.expectRevert();
+        swarmCoordinator.removeJudge(_judge1);
+        assertEq(swarmCoordinator.getJudgeCount(), 2); // Count should remain unchanged
+    }
+
+    function test_CannotAddSameJudge_Twice() public {
+        vm.startPrank(_owner);
+        swarmCoordinator.addJudge(_judge1);
+        vm.expectRevert("Already a judge");
+        swarmCoordinator.addJudge(_judge1);
+        vm.stopPrank();
+        assertEq(swarmCoordinator.getJudgeCount(), 2); // Count should remain unchanged
+    }
+
+    function test_CannotRemoveNonJudge() public {
+        vm.prank(_owner);
+        vm.expectRevert("Not a judge");
+        swarmCoordinator.removeJudge(_judge1);
+        assertEq(swarmCoordinator.getJudgeCount(), 1); // Count should remain unchanged
     }
 
     function test_Judge_CanSubmit_Winner() public {
-        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up judge
+        // Add judge
         vm.prank(_owner);
-        swarmCoordinator.setJudge(manager);
+        swarmCoordinator.addJudge(_judge1);
 
         // Submit winner for round 0
-        vm.prank(manager);
+        vm.prank(_judge1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.WinnerSubmitted(0, winner, reward);
         swarmCoordinator.submitWinner(0, winner, reward);
@@ -398,57 +441,58 @@ contract SwarmCoordinatorTest is Test {
         uint256 reward = 100;
 
         vm.prank(_user);
-        vm.expectRevert(SwarmCoordinator.OnlyJudge.selector);
+        vm.expectRevert(SwarmCoordinator.NotJudge.selector);
         swarmCoordinator.submitWinner(0, winner, reward);
     }
 
     function test_Nobody_CanSubmitWinner_ForFutureRound() public {
-        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up judge
+        // Add judge
         vm.prank(_owner);
-        swarmCoordinator.setJudge(manager);
+        swarmCoordinator.addJudge(_judge1);
 
         // Try to submit winner for future round
-        vm.prank(manager);
+        vm.prank(_judge1);
         vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
         swarmCoordinator.submitWinner(1, winner, reward);
     }
 
-    function test_Manager_CannotSubmitWinner_Twice() public {
-        address manager = makeAddr("manager");
+    function test_AnyJudge_CannotSubmitWinner_Twice() public {
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up judge
-        vm.prank(_owner);
-        swarmCoordinator.setJudge(manager);
+        // Add two judges
+        vm.startPrank(_owner);
+        swarmCoordinator.addJudge(_judge1);
+        swarmCoordinator.addJudge(_judge2);
+        vm.stopPrank();
 
-        // Submit winner first time
-        vm.startPrank(manager);
+        // Submit winner first time with first judge
+        vm.prank(_judge1);
         swarmCoordinator.submitWinner(0, winner, reward);
 
-        // Try to submit different winner for same round
+        // Try to submit different winner for same round with second judge
         address winner2 = makeAddr("winner2");
+        vm.prank(_judge2);
         vm.expectRevert(SwarmCoordinator.WinnerAlreadySubmitted.selector);
         swarmCoordinator.submitWinner(0, winner2, reward);
-        vm.stopPrank();
     }
 
     function test_AccruedRewards_Accumulate_Successfully() public {
-        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
-        // Set up judge
-        vm.prank(_owner);
-        swarmCoordinator.setJudge(manager);
+        // Add two judges
+        vm.startPrank(_owner);
+        swarmCoordinator.addJudge(_judge1);
+        swarmCoordinator.addJudge(_judge2);
+        vm.stopPrank();
 
-        // Submit winner for round 0
-        vm.prank(manager);
+        // Submit winner for round 0 with first judge
+        vm.prank(_judge1);
         swarmCoordinator.submitWinner(0, winner, reward1);
 
         // Advance to round 1
@@ -459,8 +503,8 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
         vm.stopPrank();
 
-        // Submit winner for round 1
-        vm.prank(manager);
+        // Submit winner for round 1 with second judge
+        vm.prank(_judge2);
         swarmCoordinator.submitWinner(1, winner, reward2);
 
         // Verify accrued rewards
@@ -468,15 +512,14 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanGetRoundWinner() public {
-        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up judge and submit winner
+        // Add judge and submit winner
         vm.prank(_owner);
-        swarmCoordinator.setJudge(manager);
+        swarmCoordinator.addJudge(_judge1);
 
-        vm.prank(manager);
+        vm.prank(_judge1);
         swarmCoordinator.submitWinner(0, winner, reward);
 
         // Get winner as regular user
@@ -488,15 +531,14 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanGet_AccruedRewards() public {
-        address manager = makeAddr("manager");
         address winner = makeAddr("winner");
         uint256 reward = 100;
 
-        // Set up judge and submit winner
+        // Add judge and submit winner
         vm.prank(_owner);
-        swarmCoordinator.setJudge(manager);
+        swarmCoordinator.addJudge(_judge1);
 
-        vm.prank(manager);
+        vm.prank(_judge1);
         swarmCoordinator.submitWinner(0, winner, reward);
 
         // Get accrued rewards as regular user
