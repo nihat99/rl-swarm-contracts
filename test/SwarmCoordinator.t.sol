@@ -417,46 +417,55 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getJudgeCount(), 1); // Count should remain unchanged
     }
 
-    function test_Judge_CanSubmit_Winner() public {
-        address winner = makeAddr("winner");
+    function test_Judge_CanSubmitWinners_Successfully() public {
+        address[] memory winners = new address[](2);
+        winners[0] = makeAddr("winner1");
+        winners[1] = makeAddr("winner2");
 
         // Add judge
         vm.prank(_owner);
         swarmCoordinator.addJudge(_judge1);
 
-        // Submit winner for round 0
+        // Submit winners for round 0
         vm.prank(_judge1);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.WinnerSubmitted(0, winner);
-        swarmCoordinator.submitWinner(0, winner);
+        emit SwarmCoordinator.WinnerSubmitted(0, winners);
+        swarmCoordinator.submitWinner(0, winners);
 
-        // Verify winner
-        assertEq(swarmCoordinator.getRoundWinner(0), winner);
+        // Verify winners
+        address[] memory roundWinners = swarmCoordinator.getRoundWinners(0);
+        assertEq(roundWinners.length, 2);
+        assertEq(roundWinners[0], winners[0]);
+        assertEq(roundWinners[1], winners[1]);
     }
 
-    function test_NonJudge_CannotSubmit_Winner() public {
-        address winner = makeAddr("winner");
+    function test_NonJudge_CannotSubmit_Winners() public {
+        address[] memory winners = new address[](1);
+        winners[0] = makeAddr("winner");
 
         vm.prank(_user);
         vm.expectRevert(SwarmCoordinator.NotJudge.selector);
-        swarmCoordinator.submitWinner(0, winner);
+        swarmCoordinator.submitWinner(0, winners);
     }
 
-    function test_Nobody_CanSubmitWinner_ForFutureRound() public {
-        address winner = makeAddr("winner");
+    function test_Nobody_CanSubmitWinners_ForFutureRound() public {
+        address[] memory winners = new address[](1);
+        winners[0] = makeAddr("winner");
 
         // Add judge
         vm.prank(_owner);
         swarmCoordinator.addJudge(_judge1);
 
-        // Try to submit winner for future round
+        // Try to submit winners for future round
         vm.prank(_judge1);
         vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
-        swarmCoordinator.submitWinner(1, winner);
+        swarmCoordinator.submitWinner(1, winners);
     }
 
-    function test_AnyJudge_CannotSubmitWinner_Twice() public {
-        address winner = makeAddr("winner");
+    function test_AnyJudge_CannotSubmitWinners_Twice() public {
+        address[] memory winners1 = new address[](2);
+        winners1[0] = makeAddr("winner1");
+        winners1[1] = makeAddr("winner2");
 
         // Add two judges
         vm.startPrank(_owner);
@@ -464,32 +473,38 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.addJudge(_judge2);
         vm.stopPrank();
 
-        // Submit winner first time with first judge
+        // Submit winners first time with first judge
         vm.prank(_judge1);
-        swarmCoordinator.submitWinner(0, winner);
+        swarmCoordinator.submitWinner(0, winners1);
 
-        // Try to submit different winner for same round with second judge
-        address winner2 = makeAddr("winner2");
+        // Try to submit different winners for same round with second judge
+        address[] memory winners2 = new address[](2);
+        winners2[0] = makeAddr("winner3");
+        winners2[1] = makeAddr("winner4");
         vm.prank(_judge2);
         vm.expectRevert(SwarmCoordinator.WinnerAlreadySubmitted.selector);
-        swarmCoordinator.submitWinner(0, winner2);
+        swarmCoordinator.submitWinner(0, winners2);
     }
 
-    function test_Anyone_CanGetRoundWinner() public {
-        address winner = makeAddr("winner");
+    function test_Anyone_CanGetRoundWinners() public {
+        address[] memory winners = new address[](2);
+        winners[0] = makeAddr("winner1");
+        winners[1] = makeAddr("winner2");
 
-        // Add judge and submit winner
+        // Add judge and submit winners
         vm.prank(_owner);
         swarmCoordinator.addJudge(_judge1);
 
         vm.prank(_judge1);
-        swarmCoordinator.submitWinner(0, winner);
+        swarmCoordinator.submitWinner(0, winners);
 
-        // Get winner as regular user
+        // Get winners as regular user
         vm.prank(_user);
-        address roundWinner = swarmCoordinator.getRoundWinner(0);
+        address[] memory roundWinners = swarmCoordinator.getRoundWinners(0);
 
-        // Verify winner
-        assertEq(roundWinner, winner);
+        // Verify winners
+        assertEq(roundWinners.length, 2);
+        assertEq(roundWinners[0], winners[0]);
+        assertEq(roundWinners[1], winners[1]);
     }
 }

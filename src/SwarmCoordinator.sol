@@ -39,7 +39,7 @@ contract SwarmCoordinator is Ownable {
     // Number of active judges
     uint256 private _judgeCount;
     // Maps round numbers to winner addresses
-    mapping(uint256 => address) private _roundWinners;
+    mapping(uint256 => address[]) private _roundWinners;
 
     // Bootnode management state
     // Address authorized to manage bootnodes
@@ -67,7 +67,7 @@ contract SwarmCoordinator is Ownable {
     event AllBootnodesCleared(address indexed manager);
     event JudgeAdded(address indexed judge);
     event JudgeRemoved(address indexed judge);
-    event WinnerSubmitted(uint256 indexed roundNumber, address indexed winner);
+    event WinnerSubmitted(uint256 indexed roundNumber, address[] winners);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -383,28 +383,28 @@ contract SwarmCoordinator is Ownable {
     /**
      * @dev Submits a winner for a specific round
      * @param roundNumber The round number for which to submit the winner
-     * @param winner The address of the winning peer
+     * @param winners The address of the winning peer
      * @notice Only callable by the judge
      */
-    function submitWinner(uint256 roundNumber, address winner) external onlyJudge {
+    function submitWinner(uint256 roundNumber, address[] calldata winners) external onlyJudge {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
-        // Check if winner was already submitted for this round
-        if (_roundWinners[roundNumber] != address(0)) revert WinnerAlreadySubmitted();
+        // Check if winners were already submitted for this round
+        if (_roundWinners[roundNumber].length > 0) revert WinnerAlreadySubmitted();
 
-        // Record the winner
-        _roundWinners[roundNumber] = winner;
+        // Record the winners
+        _roundWinners[roundNumber] = winners;
 
-        emit WinnerSubmitted(roundNumber, winner);
+        emit WinnerSubmitted(roundNumber, winners);
     }
 
     /**
-     * @dev Gets the winner for a specific round
+     * @dev Gets the winners for a specific round
      * @param roundNumber The round number to query
-     * @return The address of the winner for that round (address(0) if no winner set)
+     * @return Array of winner addresses for that round (empty array if no winners set)
      */
-    function getRoundWinner(uint256 roundNumber) external view returns (address) {
+    function getRoundWinners(uint256 roundNumber) external view returns (address[] memory) {
         return _roundWinners[roundNumber];
     }
 }
