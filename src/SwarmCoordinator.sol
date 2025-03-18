@@ -34,11 +34,9 @@ contract SwarmCoordinator is Ownable {
     mapping(address => bytes) _eoaToPeerId;
 
     // Winner management state
-    // Set of addresses authorized to manage winners
-    mapping(address => bool) private _judges;
-    // Number of active judges
-    uint256 private _judgeCount;
-    // Maps round numbers to winner addresses
+    // Address authorized to submit winners
+    address private _judge;
+    // Maps round number to winner addresses
     mapping(uint256 => address[]) private _roundWinners;
 
     // Bootnode management state
@@ -65,8 +63,7 @@ contract SwarmCoordinator is Ownable {
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
-    event JudgeAdded(address indexed judge);
-    event JudgeRemoved(address indexed judge);
+    event JudgeUpdated(address indexed previousJudge, address indexed newJudge);
     event WinnerSubmitted(uint256 indexed roundNumber, address[] winners);
 
     // .----------------------------------------------------------.
@@ -107,7 +104,7 @@ contract SwarmCoordinator is Ownable {
 
     // Judge modifier
     modifier onlyJudge() {
-        require(_judges[msg.sender], NotJudge());
+        if (msg.sender != _judge) revert NotJudge();
         _;
     }
 
@@ -125,9 +122,9 @@ contract SwarmCoordinator is Ownable {
     constructor() Ownable(msg.sender) {
         _stageStartBlock = block.number;
         _bootnodeManager = msg.sender; // Initially set the owner as the bootnode manager
-        addJudge(msg.sender);
+        setJudge(msg.sender);
+
         emit BootnodeManagerUpdated(address(0), msg.sender);
-        emit JudgeAdded(msg.sender);
     }
 
     // .---------------------------------------------------------------.
@@ -340,44 +337,22 @@ contract SwarmCoordinator is Ownable {
     // '---------------------------------------------------------------------------'
 
     /**
-     * @dev Adds a new judge
+     * @dev Sets a new judge
      * @param newJudge The address of the new judge
      * @notice Only callable by the contract owner
      */
-    function addJudge(address newJudge) public onlyOwner {
-        require(!_judges[newJudge], "Already a judge");
-        _judges[newJudge] = true;
-        _judgeCount++;
-        emit JudgeAdded(newJudge);
+    function setJudge(address newJudge) public onlyOwner {
+        address oldJudge = _judge;
+        _judge = newJudge;
+        emit JudgeUpdated(oldJudge, newJudge);
     }
 
     /**
-     * @dev Removes a judge
-     * @param judgeToRemove The address of the judge to remove
-     * @notice Only callable by the contract owner
+     * @dev Returns the current judge
+     * @return The address of the current judge
      */
-    function removeJudge(address judgeToRemove) external onlyOwner {
-        require(_judges[judgeToRemove], "Not a judge");
-        _judges[judgeToRemove] = false;
-        _judgeCount--;
-        emit JudgeRemoved(judgeToRemove);
-    }
-
-    /**
-     * @dev Checks if an address is a judge
-     * @param account The address to check
-     * @return True if the address is a judge
-     */
-    function isJudge(address account) external view returns (bool) {
-        return _judges[account];
-    }
-
-    /**
-     * @dev Returns the current number of active judges
-     * @return The number of active judges
-     */
-    function getJudgeCount() external view returns (uint256) {
-        return _judgeCount;
+    function judge() external view returns (address) {
+        return _judge;
     }
 
     /**
@@ -389,9 +364,6 @@ contract SwarmCoordinator is Ownable {
     function submitWinner(uint256 roundNumber, address[] calldata winners) external onlyJudge {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
-
-        // Check if winners were already submitted for this round
-        if (_roundWinners[roundNumber].length > 0) revert WinnerAlreadySubmitted();
 
         // Record the winners
         _roundWinners[roundNumber] = winners;
