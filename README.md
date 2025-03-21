@@ -112,3 +112,9 @@ function judge() external view returns (address)
 
 For more information about the development environment:
 - [Foundry Book](https://book.getfoundry.sh/)
+
+## FAQ
+
+### How did you generate the ascii sections in the source code?
+
+I used https://www.asciiart.eu/text-to-ascii-art with the DOS Rebel font.

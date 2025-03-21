@@ -435,4 +435,180 @@ contract SwarmCoordinatorTest is Test {
         assertEq(roundWinners[0], winners[0]);
         assertEq(roundWinners[1], winners[1]);
     }
+
+    // Leaderboard tests
+    function test_TotalWins_AreTrackedCorrectly() public {
+        address[] memory winners = new address[](2);
+        winners[0] = makeAddr("winner1");
+        winners[1] = makeAddr("winner2");
+
+        // Set judge and submit winners for multiple rounds
+        vm.prank(_owner);
+        swarmCoordinator.setJudge(_judge);
+
+        // Submit winners for round 0
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners);
+
+        // Forward to next round
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageDuration(0, 10);
+        vm.roll(block.number + 10);
+        (uint256 newRound,) = swarmCoordinator.updateStageAndRound();
+        assertEq(newRound, 1);
+        vm.stopPrank();
+
+        // Submit winners for round 1
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(1, winners);
+
+        // Verify total wins
+        assertEq(swarmCoordinator.getTotalWins(winners[0]), 2);
+        assertEq(swarmCoordinator.getTotalWins(winners[1]), 2);
+    }
+
+    function test_GetTopWinners_ReturnsCorrectOrder() public {
+        address[] memory winners1 = new address[](2);
+        winners1[0] = makeAddr("winner1");
+        winners1[1] = makeAddr("winner2");
+
+        address[] memory winners2 = new address[](1);
+        winners2[0] = makeAddr("winner3");
+
+        // Set stage count and duration
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageDuration(0, 10);
+        vm.stopPrank();
+
+        // Set judge and submit winners for multiple rounds
+        vm.prank(_owner);
+        swarmCoordinator.setJudge(_judge);
+
+        // Submit winners for round 0
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners1);
+
+        // Forward to next round
+        vm.roll(block.number + 10);
+        swarmCoordinator.updateStageAndRound();
+
+        // Submit winners for round 1
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(1, winners2);
+
+        // Forward to next round
+        vm.roll(block.number + 10);
+        swarmCoordinator.updateStageAndRound();
+
+        // Submit winners for round 2 (same as round 0)
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(2, winners1);
+
+        // Get top 3 winners
+        address[] memory topWinners = swarmCoordinator.leaderboard(0, 3);
+
+        // Verify order (winners1[0] and winners1[1] should be tied with 2 wins each)
+        assertEq(topWinners.length, 3);
+        assertEq(topWinners[0], winners1[0]);
+        assertEq(topWinners[1], winners1[1]);
+        assertEq(topWinners[2], winners2[0]);
+        assertEq(swarmCoordinator.getTotalWins(topWinners[0]), 2);
+        assertEq(swarmCoordinator.getTotalWins(topWinners[1]), 2);
+        assertEq(swarmCoordinator.getTotalWins(topWinners[2]), 1);
+    }
+
+    function test_GetTopWinners_HandlesLessWinnersThanRequested() public {
+        address[] memory winners = new address[](2);
+        winners[0] = makeAddr("winner1");
+        winners[1] = makeAddr("winner2");
+
+        // Set judge and submit winners
+        vm.prank(_owner);
+        swarmCoordinator.setJudge(_judge);
+
+        // Submit winners for round 0
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners);
+
+        // Request top 5 winners when only 2 exist
+        address[] memory topWinners = swarmCoordinator.leaderboard(0, 5);
+
+        // Verify we only get 2 winners
+        assertEq(topWinners.length, 2);
+        assertEq(swarmCoordinator.getTotalWins(topWinners[0]), 1);
+        assertEq(swarmCoordinator.getTotalWins(topWinners[1]), 1);
+    }
+
+    function test_Leaderboard_HandlesInvalidIndexes() public {
+        address[] memory winners = new address[](2);
+        winners[0] = makeAddr("winner1");
+        winners[1] = makeAddr("winner2");
+
+        // Set judge and submit winners
+        vm.prank(_owner);
+        swarmCoordinator.setJudge(_judge);
+
+        // Submit winners for round 0
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners);
+
+        // Test with start > end
+        vm.expectRevert("Start index must be less than or equal to end index");
+        swarmCoordinator.leaderboard(2, 1);
+
+        // Test with start > length
+        address[] memory result = swarmCoordinator.leaderboard(5, 10);
+        assertEq(result.length, 0);
+
+        // Test with end > length
+        result = swarmCoordinator.leaderboard(0, 10);
+        assertEq(result.length, 2);
+    }
+
+    function test_Leaderboard_ReturnsCorrectSlice() public {
+        address[] memory winners1 = new address[](2);
+        winners1[0] = makeAddr("winner1");
+        winners1[1] = makeAddr("winner2");
+
+        address[] memory winners2 = new address[](1);
+        winners2[0] = makeAddr("winner3");
+
+        // Set stage count and duration
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageDuration(0, 10);
+        vm.stopPrank();
+
+        // Set judge and submit winners for multiple rounds
+        vm.prank(_owner);
+        swarmCoordinator.setJudge(_judge);
+
+        // Submit winners for round 0
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners1);
+
+        // Forward to next round
+        vm.roll(block.number + 10);
+        swarmCoordinator.updateStageAndRound();
+
+        // Submit winners for round 1
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(1, winners2);
+
+        // Forward to next round
+        vm.roll(block.number + 10);
+        swarmCoordinator.updateStageAndRound();
+
+        // Submit winners for round 2 (same as round 0)
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(2, winners1);
+
+        // Get slice from index 2 to 3
+        address[] memory slice = swarmCoordinator.leaderboard(2, 3);
+        assertEq(slice.length, 1);
+        assertEq(slice[0], winners2[0]);
+        assertEq(swarmCoordinator.getTotalWins(slice[0]), 1);
+    }
 }
