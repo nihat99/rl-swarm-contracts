@@ -34,12 +34,10 @@ contract SwarmCoordinator is Ownable {
     mapping(address => bytes) _eoaToPeerId;
 
     // Winner management state
-    // Address authorized to manage winners
-    address private _winnerManager;
-    // Maps round numbers to winner addresses
-    mapping(uint256 => address) private _roundWinners;
-    // Maps accounts to their total accumulated rewards
-    mapping(address => uint256) private _accruedRewards;
+    // Address authorized to submit winners
+    address private _judge;
+    // Maps round number to winner addresses
+    mapping(uint256 => address[]) private _roundWinners;
 
     // Bootnode management state
     // Address authorized to manage bootnodes
@@ -65,9 +63,8 @@ contract SwarmCoordinator is Ownable {
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
-    event WinnerManagerUpdated(address indexed previousManager, address indexed newManager);
-    event WinnerSubmitted(uint256 indexed roundNumber, address indexed winner, uint256 reward);
-    event RewardsAccrued(address indexed account, uint256 newTotal);
+    event JudgeUpdated(address indexed previousJudge, address indexed newJudge);
+    event WinnerSubmitted(uint256 indexed roundNumber, address[] winners);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -84,7 +81,7 @@ contract SwarmCoordinator is Ownable {
     error StageOutOfBounds();
     error OnlyBootnodeManager();
     error InvalidBootnodeIndex();
-    error OnlyWinnerManager();
+    error NotJudge();
     error InvalidRoundNumber();
     error WinnerAlreadySubmitted();
 
@@ -105,9 +102,9 @@ contract SwarmCoordinator is Ownable {
         _;
     }
 
-    // Winner manager modifier
-    modifier onlyWinnerManager() {
-        if (msg.sender != _winnerManager) revert OnlyWinnerManager();
+    // Judge modifier
+    modifier onlyJudge() {
+        if (msg.sender != _judge) revert NotJudge();
         _;
     }
 
@@ -125,9 +122,9 @@ contract SwarmCoordinator is Ownable {
     constructor() Ownable(msg.sender) {
         _stageStartBlock = block.number;
         _bootnodeManager = msg.sender; // Initially set the owner as the bootnode manager
-        _winnerManager = msg.sender; // Initially set the owner as the winner manager
+        setJudge(msg.sender);
+
         emit BootnodeManagerUpdated(address(0), msg.sender);
-        emit WinnerManagerUpdated(address(0), msg.sender);
     }
 
     // .---------------------------------------------------------------.
@@ -255,6 +252,7 @@ contract SwarmCoordinator is Ownable {
     /**
      * @dev Sets a new bootnode manager
      * @param newManager The address of the new bootnode manager
+     * @notice Only callable by the contract owner
      */
     function setBootnodeManager(address newManager) external onlyOwner {
         address oldManager = _bootnodeManager;
@@ -339,63 +337,46 @@ contract SwarmCoordinator is Ownable {
     // '---------------------------------------------------------------------------'
 
     /**
-     * @dev Sets a new winner manager
-     * @param newManager The address of the new winner manager
+     * @dev Sets a new judge
+     * @param newJudge The address of the new judge
      * @notice Only callable by the contract owner
      */
-    function setWinnerManager(address newManager) external onlyOwner {
-        address oldManager = _winnerManager;
-        _winnerManager = newManager;
-        emit WinnerManagerUpdated(oldManager, newManager);
+    function setJudge(address newJudge) public onlyOwner {
+        address oldJudge = _judge;
+        _judge = newJudge;
+        emit JudgeUpdated(oldJudge, newJudge);
     }
 
     /**
-     * @dev Returns the current winner manager address
-     * @return The address of the current winner manager
+     * @dev Returns the current judge
+     * @return The address of the current judge
      */
-    function winnerManager() external view returns (address) {
-        return _winnerManager;
+    function judge() external view returns (address) {
+        return _judge;
     }
 
     /**
-     * @dev Submits a winner for a specific round and assigns their reward
+     * @dev Submits a winner for a specific round
      * @param roundNumber The round number for which to submit the winner
-     * @param winner The address of the winning peer
-     * @param reward The reward value for the winner
-     * @notice Only callable by the winner manager
+     * @param winners The address of the winning peer
+     * @notice Only callable by the judge
      */
-    function submitWinner(uint256 roundNumber, address winner, uint256 reward) external onlyWinnerManager {
+    function submitWinner(uint256 roundNumber, address[] calldata winners) external onlyJudge {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
-        // Check if winner was already submitted for this round
-        if (_roundWinners[roundNumber] != address(0)) revert WinnerAlreadySubmitted();
+        // Record the winners
+        _roundWinners[roundNumber] = winners;
 
-        // Record the winner
-        _roundWinners[roundNumber] = winner;
-
-        // Update accrued rewards
-        _accruedRewards[winner] += reward;
-
-        emit WinnerSubmitted(roundNumber, winner, reward);
-        emit RewardsAccrued(winner, _accruedRewards[winner]);
+        emit WinnerSubmitted(roundNumber, winners);
     }
 
     /**
-     * @dev Gets the winner for a specific round
+     * @dev Gets the winners for a specific round
      * @param roundNumber The round number to query
-     * @return The address of the winner for that round (address(0) if no winner set)
+     * @return Array of winner addresses for that round (empty array if no winners set)
      */
-    function getRoundWinner(uint256 roundNumber) external view returns (address) {
+    function getRoundWinners(uint256 roundNumber) external view returns (address[] memory) {
         return _roundWinners[roundNumber];
-    }
-
-    /**
-     * @dev Gets the total accrued rewards for an account
-     * @param account The address to query
-     * @return The total rewards accrued by the account
-     */
-    function getAccruedRewards(address account) external view returns (uint256) {
-        return _accruedRewards[account];
     }
 }

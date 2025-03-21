@@ -9,7 +9,7 @@ contract SwarmCoordinatorTest is Test {
 
     address _owner = makeAddr("owner");
     address _bootnodeManager = makeAddr("bootnodeManager");
-    address _winnerManager = makeAddr("winnerManager");
+    address _judge = makeAddr("judge");
     address _user = makeAddr("user");
 
     function setUp() public {
@@ -348,162 +348,91 @@ contract SwarmCoordinatorTest is Test {
         assertEq(count, 3);
     }
 
-    // Winner manager tests
-    function test_SwarmCoordinatorDeployment_SetsWinnerManager_ToOwner() public view {
-        assertEq(swarmCoordinator.winnerManager(), _owner);
+    // Judge tests
+    function test_SwarmCoordinatorDeployment_SetsJudge_ToOwner() public view {
+        assertEq(swarmCoordinator.judge(), _owner);
     }
 
-    function test_Owner_CanSet_WinnerManager() public {
-        address manager = makeAddr("manager");
-
+    function test_Owner_CanSet_Judge() public {
         vm.startPrank(_owner);
         vm.expectEmit(true, true, false, false);
-        emit SwarmCoordinator.WinnerManagerUpdated(_owner, manager);
-        swarmCoordinator.setWinnerManager(manager);
+        emit SwarmCoordinator.JudgeUpdated(_owner, _judge);
+        swarmCoordinator.setJudge(_judge);
         vm.stopPrank();
 
-        assertEq(swarmCoordinator.winnerManager(), manager);
+        assertEq(swarmCoordinator.judge(), _judge);
     }
 
-    function test_NonOwner_CannotSet_WinnerManager() public {
-        address manager = makeAddr("manager");
-
+    function test_NonOwner_CannotSet_Judge() public {
         vm.prank(_user);
         vm.expectRevert();
-        swarmCoordinator.setWinnerManager(manager);
+        swarmCoordinator.setJudge(_judge);
     }
 
-    function test_WinnerManager_CanSubmit_Winner() public {
-        address manager = makeAddr("manager");
-        address winner = makeAddr("winner");
-        uint256 reward = 100;
+    function test_Judge_CanSubmitWinners_Successfully() public {
+        address[] memory winners = new address[](2);
+        winners[0] = makeAddr("winner1");
+        winners[1] = makeAddr("winner2");
 
-        // Set up winner manager
+        // Set judge
         vm.prank(_owner);
-        swarmCoordinator.setWinnerManager(manager);
+        swarmCoordinator.setJudge(_judge);
 
-        // Submit winner for round 0
-        vm.prank(manager);
+        // Submit winners for round 0
+        vm.prank(_judge);
         vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.WinnerSubmitted(0, winner, reward);
-        swarmCoordinator.submitWinner(0, winner, reward);
+        emit SwarmCoordinator.WinnerSubmitted(0, winners);
+        swarmCoordinator.submitWinner(0, winners);
 
-        // Verify winner and accrued rewards
-        assertEq(swarmCoordinator.getRoundWinner(0), winner);
-        assertEq(swarmCoordinator.getAccruedRewards(winner), reward);
+        // Verify winners
+        address[] memory roundWinners = swarmCoordinator.getRoundWinners(0);
+        assertEq(roundWinners.length, 2);
+        assertEq(roundWinners[0], winners[0]);
+        assertEq(roundWinners[1], winners[1]);
     }
 
-    function test_NonWinnerManager_CannotSubmit_Winner() public {
-        address winner = makeAddr("winner");
-        uint256 reward = 100;
+    function test_NonJudge_CannotSubmit_Winners() public {
+        address[] memory winners = new address[](1);
+        winners[0] = makeAddr("winner");
 
         vm.prank(_user);
-        vm.expectRevert(SwarmCoordinator.OnlyWinnerManager.selector);
-        swarmCoordinator.submitWinner(0, winner, reward);
+        vm.expectRevert(SwarmCoordinator.NotJudge.selector);
+        swarmCoordinator.submitWinner(0, winners);
     }
 
-    function test_Nobody_CanSubmitWinner_ForFutureRound() public {
-        address manager = makeAddr("manager");
-        address winner = makeAddr("winner");
-        uint256 reward = 100;
+    function test_Nobody_CanSubmitWinners_ForFutureRound() public {
+        address[] memory winners = new address[](1);
+        winners[0] = makeAddr("winner");
 
-        // Set up winner manager
+        // Set judge
         vm.prank(_owner);
-        swarmCoordinator.setWinnerManager(manager);
+        swarmCoordinator.setJudge(_judge);
 
-        // Try to submit winner for future round
-        vm.prank(manager);
+        // Try to submit winners for future round
+        vm.prank(_judge);
         vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
-        swarmCoordinator.submitWinner(1, winner, reward);
+        swarmCoordinator.submitWinner(1, winners);
     }
 
-    function test_Manager_CannotSubmitWinner_Twice() public {
-        address manager = makeAddr("manager");
-        address winner = makeAddr("winner");
-        uint256 reward = 100;
+    function test_Anyone_CanGetRoundWinners() public {
+        address[] memory winners = new address[](2);
+        winners[0] = makeAddr("winner1");
+        winners[1] = makeAddr("winner2");
 
-        // Set up winner manager
+        // Set judge and submit winners
         vm.prank(_owner);
-        swarmCoordinator.setWinnerManager(manager);
+        swarmCoordinator.setJudge(_judge);
 
-        // Submit winner first time
-        vm.startPrank(manager);
-        swarmCoordinator.submitWinner(0, winner, reward);
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners);
 
-        // Try to submit different winner for same round
-        address winner2 = makeAddr("winner2");
-        vm.expectRevert(SwarmCoordinator.WinnerAlreadySubmitted.selector);
-        swarmCoordinator.submitWinner(0, winner2, reward);
-        vm.stopPrank();
-    }
-
-    function test_AccruedRewards_Accumulate_Successfully() public {
-        address manager = makeAddr("manager");
-        address winner = makeAddr("winner");
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
-
-        // Set up winner manager
-        vm.prank(_owner);
-        swarmCoordinator.setWinnerManager(manager);
-
-        // Submit winner for round 0
-        vm.prank(manager);
-        swarmCoordinator.submitWinner(0, winner, reward1);
-
-        // Advance to round 1
-        vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, 100);
-        vm.roll(block.number + 101);
-        swarmCoordinator.updateStageAndRound();
-        vm.stopPrank();
-
-        // Submit winner for round 1
-        vm.prank(manager);
-        swarmCoordinator.submitWinner(1, winner, reward2);
-
-        // Verify accrued rewards
-        assertEq(swarmCoordinator.getAccruedRewards(winner), reward1 + reward2);
-    }
-
-    function test_Anyone_CanGetRoundWinner() public {
-        address manager = makeAddr("manager");
-        address winner = makeAddr("winner");
-        uint256 reward = 100;
-
-        // Set up winner manager and submit winner
-        vm.prank(_owner);
-        swarmCoordinator.setWinnerManager(manager);
-
-        vm.prank(manager);
-        swarmCoordinator.submitWinner(0, winner, reward);
-
-        // Get winner as regular user
+        // Get winners as regular user
         vm.prank(_user);
-        address roundWinner = swarmCoordinator.getRoundWinner(0);
+        address[] memory roundWinners = swarmCoordinator.getRoundWinners(0);
 
-        // Verify winner
-        assertEq(roundWinner, winner);
-    }
-
-    function test_Anyone_CanGet_AccruedRewards() public {
-        address manager = makeAddr("manager");
-        address winner = makeAddr("winner");
-        uint256 reward = 100;
-
-        // Set up winner manager and submit winner
-        vm.prank(_owner);
-        swarmCoordinator.setWinnerManager(manager);
-
-        vm.prank(manager);
-        swarmCoordinator.submitWinner(0, winner, reward);
-
-        // Get accrued rewards as regular user
-        vm.prank(_user);
-        uint256 accruedRewards = swarmCoordinator.getAccruedRewards(winner);
-
-        // Verify rewards
-        assertEq(accruedRewards, reward);
+        // Verify winners
+        assertEq(roundWinners.length, 2);
+        assertEq(roundWinners[0], winners[0]);
+        assertEq(roundWinners[1], winners[1]);
     }
 }
