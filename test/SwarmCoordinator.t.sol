@@ -611,4 +611,74 @@ contract SwarmCoordinatorTest is Test {
         assertEq(slice[0], winners2[0]);
         assertEq(swarmCoordinator.getTotalWins(slice[0]), 1);
     }
+
+    function test_GetTotalWinsByPeerId_ReturnsCorrectWins() public {
+        address winner = makeAddr("winner");
+        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
+
+        // Register peer ID
+        vm.prank(winner);
+        swarmCoordinator.registerPeer(peerId);
+
+        // Set stage count and duration
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageDuration(0, 10);
+        vm.stopPrank();
+
+        // Set judge and submit winners
+        vm.prank(_owner);
+        swarmCoordinator.setJudge(_judge);
+
+        // Submit winner for round 0
+        address[] memory winners = new address[](1);
+        winners[0] = winner;
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners);
+
+        // Forward to next round
+        vm.roll(block.number + 10);
+        swarmCoordinator.updateStageAndRound();
+
+        // Submit winner for round 1
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(1, winners);
+
+        // Check wins by peer ID
+        assertEq(swarmCoordinator.getTotalWinsByPeerId(peerId), 2);
+    }
+
+    function test_GetTotalWinsByPeerId_ReturnsZeroForUnknownPeerId() public {
+        bytes memory unknownPeerId = bytes("QmUnknownPeerId");
+        assertEq(swarmCoordinator.getTotalWinsByPeerId(unknownPeerId), 0);
+    }
+
+    function test_GetTotalWinsByPeerId_ReturnsZeroForUnregisteredPeerId() public {
+        address winner = makeAddr("winner");
+        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
+        bytes memory differentPeerId = bytes("QmDifferentPeerId");
+
+        // Register peer ID
+        vm.prank(winner);
+        swarmCoordinator.registerPeer(peerId);
+
+        // Set stage count and duration
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageDuration(0, 10);
+        vm.stopPrank();
+
+        // Set judge and submit winners
+        vm.prank(_owner);
+        swarmCoordinator.setJudge(_judge);
+
+        // Submit winner for round 0
+        address[] memory winners = new address[](1);
+        winners[0] = winner;
+        vm.prank(_judge);
+        swarmCoordinator.submitWinner(0, winners);
+
+        // Check wins by different peer ID
+        assertEq(swarmCoordinator.getTotalWinsByPeerId(differentPeerId), 0);
+    }
 }

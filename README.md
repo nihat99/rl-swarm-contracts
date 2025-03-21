@@ -75,6 +75,21 @@ function currentRound() external view returns (uint256)
 function currentStage() external view returns (uint256)
 ```
 
+4. Check total wins:
+
+```solidity
+function getTotalWins(address account) external view returns (uint256)
+function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint256)
+```
+
+5. View the leaderboard:
+
+```solidity
+function leaderboard(uint256 start, uint256 end) external view returns (address[] memory)
+```
+
+Returns a slice of the leaderboard sorted by number of wins (descending). The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end). The leaderboard tracks up to 100 top winners.
+
 ### For Administrators
 
 #### Owner

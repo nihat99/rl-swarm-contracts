@@ -32,6 +32,8 @@ contract SwarmCoordinator is Ownable {
     uint256 _stageStartBlock;
     // Maps EOA addresses to their corresponding peer IDs
     mapping(address => bytes) _eoaToPeerId;
+    // Maps peer IDs to their corresponding EOA addresses
+    mapping(bytes32 => address) _peerIdToEoa;
 
     // Winner management state
     // Address authorized to submit winners
@@ -230,7 +232,15 @@ contract SwarmCoordinator is Ownable {
     function registerPeer(bytes calldata peerId) external {
         address eoa = msg.sender;
 
+        // Clear any existing peer ID mapping for this EOA
+        bytes32 oldPeerIdHash = keccak256(_eoaToPeerId[eoa]);
+        if (oldPeerIdHash != bytes32(0)) {
+            delete _peerIdToEoa[oldPeerIdHash];
+        }
+
+        // Set new mappings
         _eoaToPeerId[eoa] = peerId;
+        _peerIdToEoa[keccak256(peerId)] = eoa;
 
         emit PeerRegistered(eoa, peerId);
     }
@@ -445,6 +455,16 @@ contract SwarmCoordinator is Ownable {
      */
     function getTotalWins(address account) external view returns (uint256) {
         return _totalWins[account];
+    }
+
+    /**
+     * @dev Gets the total number of wins for a peer ID
+     * @param peerId The peer ID to query
+     * @return The total number of wins for the peer ID
+     */
+    function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint256) {
+        address eoa = _peerIdToEoa[keccak256(peerId)];
+        return eoa == address(0) ? 0 : _totalWins[eoa];
     }
 
     /**
