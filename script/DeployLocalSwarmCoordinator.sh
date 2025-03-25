@@ -8,7 +8,7 @@ export PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4
 forge build
 
 # Deploy the Swarm Coordinator and capture the address
-DEPLOY_OUTPUT=$(forge script script/DeploySwarmCoordinator.s.sol --rpc-url $RPC_URL --sig "deployCoordinator()" --broadcast --unlocked)
+DEPLOY_OUTPUT=$(forge script script/DeployLocalSwarmCoordinator.s.sol --rpc-url $RPC_URL --sig "deployCoordinator()" --broadcast --unlocked)
 
 echo $DEPLOY_OUTPUT
 
@@ -26,7 +26,7 @@ echo "PEER2: $PEER_ADDRESS_2"
 echo "PEER3: $PEER_ADDRESS_3"
 
 # Submit winners for round 0
-forge script script/DeploySwarmCoordinator.s.sol --rpc-url $RPC_URL --broadcast --unlocked --sig "submitWinners(address,uint256,address[])" $CONTRACT_ADDRESS "0" "[$PEER_ADDRESS_1, $PEER_ADDRESS_2, $PEER_ADDRESS_3]"
+forge script script/DeployLocalSwarmCoordinator.s.sol --rpc-url $RPC_URL --broadcast --unlocked --sig "submitWinners(address,uint256,address[])" $CONTRACT_ADDRESS "0" "[$PEER_ADDRESS_1, $PEER_ADDRESS_2, $PEER_ADDRESS_3]"
 
 # Roll block number
 curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"anvil_mine","params":["0x5"],"id":1}' $RPC_URL
@@ -36,13 +36,13 @@ echo "Updated round"
 cast send --rpc-url $RPC_URL $CONTRACT_ADDRESS "updateStageAndRound()" --private-key $PRIVATE_KEY
 
 # Submit winners for round 1
-forge script script/DeploySwarmCoordinator.s.sol --rpc-url $RPC_URL --broadcast --unlocked --sig "submitWinners(address,uint256,address[])" $CONTRACT_ADDRESS "1" "[$PEER_ADDRESS_1]"
+forge script script/DeployLocalSwarmCoordinator.s.sol --rpc-url $RPC_URL --broadcast --unlocked --sig "submitWinners(address,uint256,address[])" $CONTRACT_ADDRESS "1" "[$PEER_ADDRESS_1]"
 
 # Roll block number
 curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"anvil_mine","params":["0x5"],"id":1}' $RPC_URL
 
 # Submit winners for round 1
-forge script script/DeploySwarmCoordinator.s.sol --rpc-url $RPC_URL --broadcast --unlocked --sig "submitWinners(address,uint256,address[])" $CONTRACT_ADDRESS "1" "[$PEER_ADDRESS_1, $PEER_ADDRESS_2]"
+forge script script/DeployLocalSwarmCoordinator.s.sol --rpc-url $RPC_URL --broadcast --unlocked --sig "submitWinners(address,uint256,address[])" $CONTRACT_ADDRESS "1" "[$PEER_ADDRESS_1, $PEER_ADDRESS_2]"
 
 # Get leaderboard
 echo "Leaderboard"
