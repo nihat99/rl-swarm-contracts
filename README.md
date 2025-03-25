@@ -2,6 +2,12 @@
 
 This repository contains the smart contracts for the RL Swarm project, focusing on coordinating swarm behavior onchain.
 
+## Deployed contract
+
+### Gensyn testnet
+
+[0x915674138096b84aa3CD05cB0F9c2EEE24b192C5](https://gensyn-testnet.explorer.alchemy.com/address/0x915674138096b84aa3CD05cB0F9c2EEE24b192C5?tab=contract_code)
+
 ## Overview
 
 The main contract `SwarmCoordinator` manages a round-based system for coordinating swarm participants, tracking winners, and managing bootnode infrastructure. The contract includes features for:
