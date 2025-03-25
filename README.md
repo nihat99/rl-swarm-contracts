@@ -145,7 +145,7 @@ anvil
 2. Keep this terminal running and open a new terminal to deploy the mock data:
 
 ```bash
-./script/DeploySwarmCoordinatorData.sh
+./script/DeployLocalSwarmCoordinatorData.sh
 ```
 
 This script will:
