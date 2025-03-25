@@ -32,12 +32,20 @@ contract SwarmCoordinator is Ownable {
     uint256 _stageStartBlock;
     // Maps EOA addresses to their corresponding peer IDs
     mapping(address => bytes) _eoaToPeerId;
+    // Maps peer IDs to their corresponding EOA addresses
+    mapping(bytes32 => address) _peerIdToEoa;
 
     // Winner management state
     // Address authorized to submit winners
     address private _judge;
     // Maps round number to winner addresses
     mapping(uint256 => address[]) private _roundWinners;
+    // Maps address to total number of wins
+    mapping(address => uint256) private _totalWins;
+    // Array of top winners (sorted by wins)
+    address[] private _topWinners;
+    // Maximum number of top winners to track
+    uint256 private constant MAX_TOP_WINNERS = 100;
 
     // Bootnode management state
     // Address authorized to manage bootnodes
@@ -224,7 +232,15 @@ contract SwarmCoordinator is Ownable {
     function registerPeer(bytes calldata peerId) external {
         address eoa = msg.sender;
 
+        // Clear any existing peer ID mapping for this EOA
+        bytes32 oldPeerIdHash = keccak256(_eoaToPeerId[eoa]);
+        if (oldPeerIdHash != bytes32(0)) {
+            delete _peerIdToEoa[oldPeerIdHash];
+        }
+
+        // Set new mappings
         _eoaToPeerId[eoa] = peerId;
+        _peerIdToEoa[keccak256(peerId)] = eoa;
 
         emit PeerRegistered(eoa, peerId);
     }
@@ -368,7 +384,59 @@ contract SwarmCoordinator is Ownable {
         // Record the winners
         _roundWinners[roundNumber] = winners;
 
+        // Update total wins and maintain top winners list
+        for (uint256 i = 0; i < winners.length; i++) {
+            address winner = winners[i];
+            _totalWins[winner]++;
+            _updateTopWinners(winner);
+        }
+
         emit WinnerSubmitted(roundNumber, winners);
+    }
+
+    /**
+     * @dev Updates the top winners list when a winner's score changes
+     * @param winner The address whose score has changed
+     */
+    function _updateTopWinners(address winner) internal {
+        uint256 winnerWins = _totalWins[winner];
+
+        // Find if winner is already in the list
+        uint256 currentIndex = type(uint256).max;
+        for (uint256 i = 0; i < _topWinners.length; i++) {
+            if (_topWinners[i] == winner) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        if (currentIndex == type(uint256).max) {
+            // Winner is not in the list
+            if (_topWinners.length < MAX_TOP_WINNERS) {
+                // List is not full, add to end
+                _topWinners.push(winner);
+                currentIndex = _topWinners.length - 1;
+            } else {
+                // List is full, check if winner should be added
+                if (_totalWins[_topWinners[_topWinners.length - 1]] < winnerWins) {
+                    // Replace last place
+                    _topWinners[_topWinners.length - 1] = winner;
+                    currentIndex = _topWinners.length - 1;
+                } else {
+                    // Winner doesn't qualify for top list
+                    return;
+                }
+            }
+        }
+
+        // Move winner up in the list if needed
+        while (currentIndex > 0 && _totalWins[_topWinners[currentIndex - 1]] < winnerWins) {
+            // Swap with previous position
+            address temp = _topWinners[currentIndex - 1];
+            _topWinners[currentIndex - 1] = _topWinners[currentIndex];
+            _topWinners[currentIndex] = temp;
+            currentIndex--;
+        }
     }
 
     /**
@@ -378,5 +446,52 @@ contract SwarmCoordinator is Ownable {
      */
     function getRoundWinners(uint256 roundNumber) external view returns (address[] memory) {
         return _roundWinners[roundNumber];
+    }
+
+    /**
+     * @dev Gets the total number of wins for an address
+     * @param account The address to query
+     * @return The total number of wins for the address
+     */
+    function getTotalWins(address account) external view returns (uint256) {
+        return _totalWins[account];
+    }
+
+    /**
+     * @dev Gets the total number of wins for a peer ID
+     * @param peerId The peer ID to query
+     * @return The total number of wins for the peer ID
+     */
+    function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint256) {
+        address eoa = _peerIdToEoa[keccak256(peerId)];
+        return eoa == address(0) ? 0 : _totalWins[eoa];
+    }
+
+    /**
+     * @dev Gets a slice of the leaderboard
+     * @param start The starting index (inclusive)
+     * @param end The ending index (exclusive)
+     * @return Array of addresses sorted by number of wins (descending)
+     */
+    function leaderboard(uint256 start, uint256 end) external view returns (address[] memory) {
+        // Ensure start is not greater than end
+        require(start <= end, "Start index must be less than or equal to end index");
+
+        // Ensure end is not greater than the length of the list
+        if (end > _topWinners.length) {
+            end = _topWinners.length;
+        }
+
+        // Ensure start is not greater than the length of the list
+        if (start > _topWinners.length) {
+            start = _topWinners.length;
+        }
+
+        // Create result array with the correct size
+        address[] memory result = new address[](end - start);
+        for (uint256 i = start; i < end; i++) {
+            result[i - start] = _topWinners[i];
+        }
+        return result;
     }
 }

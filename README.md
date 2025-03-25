@@ -75,6 +75,21 @@ function currentRound() external view returns (uint256)
 function currentStage() external view returns (uint256)
 ```
 
+4. Check total wins:
+
+```solidity
+function getTotalWins(address account) external view returns (uint256)
+function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint256)
+```
+
+5. View the leaderboard:
+
+```solidity
+function leaderboard(uint256 start, uint256 end) external view returns (address[] memory)
+```
+
+Returns a slice of the leaderboard sorted by number of wins (descending). The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end). The leaderboard tracks up to 100 top winners.
+
 ### For Administrators
 
 #### Owner
@@ -110,5 +125,47 @@ function judge() external view returns (address)
 
 ## Development
 
+### Deploy mock data
+
+One can set up a local environment for testing.
+
+Requirements:
+
+- [foundry](https://book.getfoundry.sh/getting-started/installation)
+- [curl](https://curl.se/download.html)
+
+Foundry comes with a local Ethereum node called `anvil`. To set up your local environment:
+
+1. Start the local Ethereum node:
+
+```bash
+anvil
+```
+
+2. Keep this terminal running and open a new terminal to deploy the mock data:
+
+```bash
+./script/DeploySwarmCoordinatorData.sh
+```
+
+This script will:
+
+- Deploy the SwarmCoordinator contract
+- Register mock peers
+- Add bootnode entries
+- Set up test rounds and winners
+- Display contract address and leaderboard
+
+You can now interact with the contract at the address printed in the deployment output.
+
+### Generic framework info
+
 For more information about the development environment:
+
 - [Foundry Book](https://book.getfoundry.sh/)
+
+## FAQ
+
+### How did you generate the ascii sections in the source code?
+
+I used https://www.asciiart.eu/text-to-ascii-art with the DOS Rebel font.
