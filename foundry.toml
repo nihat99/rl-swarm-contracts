@@ -4,7 +4,7 @@ out = "out"
 libs = ["lib"]
 
 # Optimizer settings
-solc = "0.8.28"
+solc = "0.8.29"
 optimizer = true
 optimizer_runs = 1000_000
 
