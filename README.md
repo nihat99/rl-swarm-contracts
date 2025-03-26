@@ -23,8 +23,8 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 
 1. **Stage and Round Management**
    - Rounds progress through multiple stages
-   - Each stage has a configurable duration
-   - Stages automatically advance when their duration is complete
+   - Stages are advanced by a designated stage updater
+   - No time-based duration checks for stage progression
 
 2. **Peer Management**
    - Users can register their peer IDs by linking them to their EOA
@@ -43,17 +43,22 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 ## Roles
 
 1. **Owner**
-   - Can set stage durations and count
+   - Can set stage count
    - Can assign bootnode manager role
    - Can set judge
+   - Can set stage updater
    - Initially deployed contract owner
 
-2. **Bootnode Manager**
+2. **Stage Updater**
+   - Can advance stages and rounds
+   - Initially set to contract owner
+
+3. **Bootnode Manager**
    - Can add and remove bootnodes
    - Can clear all bootnodes
    - Initially set to contract owner
 
-3. **Judge**
+4. **Judge**
    - Single address authorized to submit winners for completed rounds
    - Can be a smart contract implementing custom consensus logic
    - Initially set to contract owner
@@ -104,9 +109,17 @@ Manages stages and other managers.
 
 ```solidity
 function setStageCount(uint256 stageCount_)
-function setStageDuration(uint256 stage_, uint256 stageDuration_)
+function setStageUpdater(address newUpdater)
 function setBootnodeManager(address newManager)
 function setJudge(address newJudge)
+```
+
+#### Stage Updater
+
+Advances stages and rounds.
+
+```solidity
+function updateStageAndRound() external returns (uint256, uint256)
 ```
 
 #### Bootnode manager
