@@ -131,7 +131,7 @@ contract SwarmCoordinatorTest is Test {
 
     function test_Anyone_CanAddPeer_Successfully() public {
         address user = makeAddr("user");
-        string memory peerId = "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N";
+        string memory peerId = "QmPeer1";
 
         vm.startPrank(user);
         vm.expectEmit(true, true, false, true);
@@ -169,7 +169,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(storedPeerId2, peerId2, "Peer ID 2 not stored correctly");
     }
 
-    function test_Anyone_CanUpdate_ItsOwnPeerId() public {
+    function test_Nobody_CanUpdate_ItsOwnPeerId() public {
         address user = makeAddr("user");
         string memory peerId1 = "peerId1";
         string memory peerId2 = "peerId2";
@@ -184,16 +184,14 @@ contract SwarmCoordinatorTest is Test {
         string memory storedPeerId1 = swarmCoordinator.getPeerId(user);
         assertEq(storedPeerId1, peerId1, "First peer ID not stored correctly");
 
-        // User updates to second peer
+        // Try to update to second peer - should fail
         vm.prank(user);
-        vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.PeerRegistered(user, peerId2);
+        vm.expectRevert(SwarmCoordinator.PeerIdAlreadyRegistered.selector);
         swarmCoordinator.registerPeer(peerId2);
 
-        // Verify second peer ID overwrote the first one
+        // Verify peer ID was not changed
         string memory storedPeerId2 = swarmCoordinator.getPeerId(user);
-        assertEq(storedPeerId2, peerId2, "Second peer ID not stored correctly");
-        assertTrue(keccak256(bytes(storedPeerId2)) != keccak256(bytes(peerId1)), "Peer ID was not updated");
+        assertEq(storedPeerId2, peerId1, "Peer ID should not have changed");
     }
 
     // Bootnode tests
