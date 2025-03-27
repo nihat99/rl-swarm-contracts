@@ -233,6 +233,12 @@ Load the environment file:
 source .env
 ```
 
+Alternatively, an anvil (local deployment) specific environment file is already in the repo, load it with:
+
+```bash
+source .env.anvil
+```
+
 After loading the environment file, deploy it:
 
 ```bash
