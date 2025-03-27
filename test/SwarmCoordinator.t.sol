@@ -131,7 +131,7 @@ contract SwarmCoordinatorTest is Test {
 
     function test_Anyone_CanAddPeer_Successfully() public {
         address user = makeAddr("user");
-        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
+        string memory peerId = "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N";
 
         vm.startPrank(user);
         vm.expectEmit(true, true, false, true);
@@ -140,15 +140,15 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
 
         // Verify the mapping was updated correctly using the getter function
-        bytes memory storedPeerId = swarmCoordinator.getPeerId(user);
-        assertEq(keccak256(storedPeerId), keccak256(peerId), "Peer ID not stored correctly");
+        string memory storedPeerId = swarmCoordinator.getPeerId(user);
+        assertEq(storedPeerId, peerId, "Peer ID not stored correctly");
     }
 
     function test_Anyone_CanRegister_DifferentPeerIds() public {
         address user1 = makeAddr("user1");
         address user2 = makeAddr("user2");
-        bytes memory peerId1 = bytes("peerId1");
-        bytes memory peerId2 = bytes("peerId2");
+        string memory peerId1 = "peerId1";
+        string memory peerId2 = "peerId2";
 
         // First user registers peer
         vm.prank(user1);
@@ -163,16 +163,16 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
 
         // Verify the mappings were updated correctly
-        bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user1);
-        bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user2);
-        assertEq(keccak256(storedPeerId1), keccak256(peerId1), "Peer ID 1 not stored correctly");
-        assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Peer ID 2 not stored correctly");
+        string memory storedPeerId1 = swarmCoordinator.getPeerId(user1);
+        string memory storedPeerId2 = swarmCoordinator.getPeerId(user2);
+        assertEq(storedPeerId1, peerId1, "Peer ID 1 not stored correctly");
+        assertEq(storedPeerId2, peerId2, "Peer ID 2 not stored correctly");
     }
 
     function test_Anyone_CanUpdate_ItsOwnPeerId() public {
         address user = makeAddr("user");
-        bytes memory peerId1 = bytes("peerId1");
-        bytes memory peerId2 = bytes("peerId2");
+        string memory peerId1 = "peerId1";
+        string memory peerId2 = "peerId2";
 
         // User registers first peer
         vm.prank(user);
@@ -181,8 +181,8 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId1);
 
         // Verify first peer ID was stored correctly
-        bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user);
-        assertEq(keccak256(storedPeerId1), keccak256(peerId1), "First peer ID not stored correctly");
+        string memory storedPeerId1 = swarmCoordinator.getPeerId(user);
+        assertEq(storedPeerId1, peerId1, "First peer ID not stored correctly");
 
         // User updates to second peer
         vm.prank(user);
@@ -191,9 +191,9 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
 
         // Verify second peer ID overwrote the first one
-        bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user);
-        assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Second peer ID not stored correctly");
-        assertTrue(keccak256(storedPeerId2) != keccak256(peerId1), "Peer ID was not updated");
+        string memory storedPeerId2 = swarmCoordinator.getPeerId(user);
+        assertEq(storedPeerId2, peerId2, "Second peer ID not stored correctly");
+        assertTrue(keccak256(bytes(storedPeerId2)) != keccak256(bytes(peerId1)), "Peer ID was not updated");
     }
 
     // Bootnode tests
@@ -621,7 +621,7 @@ contract SwarmCoordinatorTest is Test {
 
     function test_GetTotalWinsByPeerId_ReturnsCorrectWins() public {
         address winner = makeAddr("winner");
-        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
+        string memory peerId = "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N";
 
         // Register peer ID
         vm.prank(winner);
@@ -656,14 +656,14 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_GetTotalWinsByPeerId_ReturnsZeroForUnknownPeerId() public {
-        bytes memory unknownPeerId = bytes("QmUnknownPeerId");
+        string memory unknownPeerId = "QmUnknownPeerId";
         assertEq(swarmCoordinator.getTotalWinsByPeerId(unknownPeerId), 0);
     }
 
     function test_GetTotalWinsByPeerId_ReturnsZeroForUnregisteredPeerId() public {
         address winner = makeAddr("winner");
-        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
-        bytes memory differentPeerId = bytes("QmDifferentPeerId");
+        string memory peerId = "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N";
+        string memory differentPeerId = "QmDifferentPeerId";
 
         // Register peer ID
         vm.prank(winner);

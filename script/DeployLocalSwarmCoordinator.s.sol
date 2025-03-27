@@ -8,7 +8,7 @@ contract DeployLocalSwarmCoordinator is Script {
     // Define bootnodes
     uint256[] bootnodesPrivateKey;
     address[] mockPeers;
-    bytes[] peerIds;
+    string[] peerIds;
     string[] bootnodes;
     uint256 deployerPrivateKey;
 
@@ -28,9 +28,9 @@ contract DeployLocalSwarmCoordinator is Script {
         console2.log("peer2: ", mockPeers[1]);
         console2.log("peer3: ", mockPeers[2]);
 
-        peerIds.push(bytes("QmPeer1"));
-        peerIds.push(bytes("QmPeer2"));
-        peerIds.push(bytes("QmPeer3"));
+        peerIds.push("QmPeer1");
+        peerIds.push("QmPeer2");
+        peerIds.push("QmPeer3");
 
         bootnodes.push("/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1");
         bootnodes.push("/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2");
