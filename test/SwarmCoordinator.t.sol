@@ -826,7 +826,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(0, winners);
 
         // Get top 100 winners
-        string[] memory topWinners = swarmCoordinator.winnerLeaderboard(0, 100);
+        (string[] memory topWinners, uint256[] memory topWins) = swarmCoordinator.winnerLeaderboard(0, 100);
         assertEq(topWinners.length, 100);
         for (uint256 i = 0; i < 100; i++) {
             assertEq(topWinners[i], winners[i]);
@@ -849,7 +849,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(2, topWinner);
 
         // New winner bubbled up the leaderboard
-        topWinners = swarmCoordinator.winnerLeaderboard(0, 1);
+        (topWinners, topWins) = swarmCoordinator.winnerLeaderboard(0, 1);
         assertEq(topWinners[0], "QmUser");
         assertEq(swarmCoordinator.getTotalWins("QmUser"), 2);
     }
@@ -874,7 +874,7 @@ contract SwarmCoordinatorTest is Test {
         }
 
         // Get top 100 voters
-        address[] memory topVoters = swarmCoordinator.voterLeaderboard(0, 100);
+        (address[] memory topVoters, uint256[] memory topVoteCounts) = swarmCoordinator.voterLeaderboard(0, 100);
         assertEq(topVoters.length, 100);
         for (uint256 i = 0; i < 100; i++) {
             assertEq(topVoters[i], voters[i]);
@@ -898,7 +898,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(2, winners);
 
         // New voter should bubble up the leaderboard
-        topVoters = swarmCoordinator.voterLeaderboard(0, 1);
+        (topVoters, topVoteCounts) = swarmCoordinator.voterLeaderboard(0, 1);
         assertEq(topVoters[0], newVoter);
         assertEq(swarmCoordinator.getVoterVoteCount(newVoter), 2);
     }
