@@ -737,7 +737,7 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners = new string[](100);
         address[] memory users = new address[](100);
         for (uint256 i = 0; i < 100; i++) {
-            winners[i] = string(abi.encodePacked("QmWinner", abi.encodePacked(i)));
+            winners[i] = string(abi.encodePacked("QmWinner", i));
             users[i] = makeAddr(string(abi.encodePacked("user", i)));
 
             // Register user
@@ -780,5 +780,54 @@ contract SwarmCoordinatorTest is Test {
         topWinners = swarmCoordinator.winnerLeaderboard(0, 1);
         assertEq(topWinners[0], "QmUser");
         assertEq(swarmCoordinator.getTotalWins("QmUser"), 2);
+    }
+
+    function test_VoterLeaderboard_CorrectlyHandlesMoreThanMaxTopVoters() public {
+        // Create 100 voters
+        address[] memory voters = new address[](100);
+        for (uint256 i = 0; i < 100; i++) {
+            voters[i] = makeAddr(string(abi.encodePacked("voter", i)));
+        }
+
+        // Register a peer for voting
+        string[] memory winners = new string[](1);
+        winners[0] = "QmWinner1";
+        vm.prank(_user);
+        swarmCoordinator.registerPeer(winners[0]);
+
+        // Have each voter vote once
+        for (uint256 i = 0; i < 100; i++) {
+            vm.prank(voters[i]);
+            swarmCoordinator.submitWinners(0, winners);
+        }
+
+        // Get top 100 voters
+        address[] memory topVoters = swarmCoordinator.voterLeaderboard(0, 100);
+        assertEq(topVoters.length, 100);
+        for (uint256 i = 0; i < 100; i++) {
+            assertEq(topVoters[i], voters[i]);
+            assertEq(swarmCoordinator.getVoterVoteCount(topVoters[i]), 1);
+        }
+
+        // Advance to next round
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+
+        // Add two more votes for a new voter
+        address newVoter = makeAddr("newVoter");
+        vm.prank(newVoter);
+        swarmCoordinator.submitWinners(1, winners);
+
+        // Advance to next round
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+
+        vm.prank(newVoter);
+        swarmCoordinator.submitWinners(2, winners);
+
+        // New voter should bubble up the leaderboard
+        topVoters = swarmCoordinator.voterLeaderboard(0, 1);
+        assertEq(topVoters[0], newVoter);
+        assertEq(swarmCoordinator.getVoterVoteCount(newVoter), 2);
     }
 }
