@@ -144,7 +144,36 @@ function judge() external view returns (address)
 
 ## Development
 
-### Deploy mock data
+### Prerequisites
+- [foundry](https://book.getfoundry.sh/getting-started/installation)
+- [curl](https://curl.se/download.html)
+
+### Testing
+Run the test suite:
+```bash
+forge test
+```
+
+Run with verbosity for more details:
+```bash
+forge test -vvv
+```
+
+### Code Style
+- Use Solidity style guide
+- Run formatter before committing:
+```bash
+forge fmt
+```
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+### Deploy local mock data
 
 One can set up a local environment for testing.
 
@@ -164,7 +193,7 @@ anvil
 2. Keep this terminal running and open a new terminal to deploy the mock data:
 
 ```bash
-./script/DeployLocalSwarmCoordinatorData.sh
+forge script script/DeployLocalMockData.s.sol --rpc-url=http://localhost:8545 --broadcast
 ```
 
 This script will:
