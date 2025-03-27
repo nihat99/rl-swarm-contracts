@@ -6,7 +6,7 @@ This repository contains the smart contracts for the RL Swarm project, focusing 
 
 ### Gensyn testnet
 
-[0x915674138096b84aa3CD05cB0F9c2EEE24b192C5](https://gensyn-testnet.explorer.alchemy.com/address/0x915674138096b84aa3CD05cB0F9c2EEE24b192C5?tab=contract_code)
+- v0.1 - [0x77bd0fcB5349F67C8fA1236E98e2b93334F4Db6E](https://gensyn-testnet.explorer.alchemy.com/address/0x77bd0fcB5349F67C8fA1236E98e2b93334F4Db6E?tab=contract)
 
 ## Overview
 
@@ -242,7 +242,18 @@ source .env.anvil
 After loading the environment file, deploy it:
 
 ```bash
-forge script script/DeploySwarmCoordinator.s.sol --rpc-url=$ETH_RPC_URL --private-key=$ETH_PRIVATE_KEY --broadcast
+forge script script/DeploySwarmCoordinator.s.sol --slow --rpc-url=$ETH_RPC_URL --private-key=$ETH_PRIVATE_KEY --broadcast
+```
+
+Verify the contract on blockscout:
+
+```bash
+forge verify-contract \
+  --rpc-url https://gensyn-testnet.g.alchemy.com/public \
+  --verifier blockscout \
+  --verifier-url 'https://gensyn-testnet.explorer.alchemy.com/api/' \
+  [contract-address] \
+  src/SwarmCoordinator.sol:SwarmCoordinator
 ```
 
 ### Generic framework info
