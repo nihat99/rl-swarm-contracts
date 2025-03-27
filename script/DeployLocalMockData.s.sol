@@ -120,29 +120,17 @@ contract DeployLocalMockData is Script {
         // coordinator.submitWinners(2, user3Round2Winners);
 
         // Get top winners
-        string[] memory topWinners = coordinator.winnerLeaderboard(0, 3);
-        console2.log("Top winners:");
+        (string[] memory topWinners, uint256[] memory winnerWins) = coordinator.winnerLeaderboard(0, 3);
+        console2.log("Top winners and their wins:");
         for (uint256 i = 0; i < topWinners.length; i++) {
-            console2.log(topWinners[i]);
+            console2.log(topWinners[i], winnerWins[i]);
         }
 
         // Get top voters
-        address[] memory topVoters = coordinator.voterLeaderboard(0, 3);
-        console2.log("Top voters:");
+        (address[] memory topVoters, uint256[] memory voterVotes) = coordinator.voterLeaderboard(0, 3);
+        console2.log("Top voters and their votes:");
         for (uint256 i = 0; i < topVoters.length; i++) {
-            console2.log(topVoters[i]);
+            console2.log(topVoters[i], voterVotes[i]);
         }
-
-        // Get total wins
-        console2.log("Total wins:");
-        console2.log(topWinners[0], coordinator.getTotalWins(topWinners[0]));
-        console2.log(topWinners[1], coordinator.getTotalWins(topWinners[1]));
-        console2.log(topWinners[2], coordinator.getTotalWins(topWinners[2]));
-
-        // Get total votes
-        console2.log("Total votes:");
-        console2.log(topVoters[0], coordinator.getVoterVoteCount(topVoters[0]));
-        console2.log(topVoters[1], coordinator.getVoterVoteCount(topVoters[1]));
-        console2.log(topVoters[2], coordinator.getVoterVoteCount(topVoters[2]));
     }
 }

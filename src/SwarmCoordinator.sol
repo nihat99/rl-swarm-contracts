@@ -50,7 +50,6 @@ contract SwarmCoordinator is Ownable {
     mapping(address => uint256) private _voterVoteCounts;
     // Array of top voters (sorted by number of votes)
     address[] private _topVoters;
-
     // Bootnode management state
     // Address authorized to manage bootnodes
     address private _bootnodeManager;
@@ -490,9 +489,14 @@ contract SwarmCoordinator is Ownable {
      * @dev Gets a slice of the voter leaderboard
      * @param start The starting index (inclusive)
      * @param end The ending index (exclusive)
-     * @return Array of addresses sorted by number of votes (descending)
+     * @return voters Array of addresses sorted by number of votes (descending)
+     * @return voteCounts Array of corresponding vote counts
      */
-    function voterLeaderboard(uint256 start, uint256 end) external view returns (address[] memory) {
+    function voterLeaderboard(uint256 start, uint256 end)
+        external
+        view
+        returns (address[] memory voters, uint256[] memory voteCounts)
+    {
         // Ensure start is not greater than end
         require(start <= end, "Start index must be less than or equal to end index");
 
@@ -506,12 +510,19 @@ contract SwarmCoordinator is Ownable {
             start = _topVoters.length;
         }
 
-        // Create result array with the correct size
-        address[] memory result = new address[](end - start);
+        // Create result arrays with the correct size
+        uint256 length = end - start;
+        voters = new address[](length);
+        voteCounts = new uint256[](length);
+
+        // Fill the arrays
         for (uint256 i = start; i < end; i++) {
-            result[i - start] = _topVoters[i];
+            uint256 index = i - start;
+            voters[index] = _topVoters[i];
+            voteCounts[index] = _voterVoteCounts[_topVoters[i]];
         }
-        return result;
+
+        return (voters, voteCounts);
     }
 
     /**
@@ -556,9 +567,14 @@ contract SwarmCoordinator is Ownable {
      * @dev Gets a slice of the leaderboard
      * @param start The starting index (inclusive)
      * @param end The ending index (exclusive)
-     * @return Array of peer IDs sorted by number of wins (descending)
+     * @return peerIds Array of peer IDs sorted by number of wins (descending)
+     * @return wins Array of corresponding win counts
      */
-    function winnerLeaderboard(uint256 start, uint256 end) external view returns (string[] memory) {
+    function winnerLeaderboard(uint256 start, uint256 end)
+        external
+        view
+        returns (string[] memory peerIds, uint256[] memory wins)
+    {
         // Ensure start is not greater than end
         require(start <= end, "Start index must be less than or equal to end index");
 
@@ -572,11 +588,18 @@ contract SwarmCoordinator is Ownable {
             start = _topWinners.length;
         }
 
-        // Create result array with the correct size
-        string[] memory result = new string[](end - start);
+        // Create result arrays with the correct size
+        uint256 length = end - start;
+        peerIds = new string[](length);
+        wins = new uint256[](length);
+
+        // Fill the arrays
         for (uint256 i = start; i < end; i++) {
-            result[i - start] = _topWinners[i];
+            uint256 index = i - start;
+            peerIds[index] = _topWinners[i];
+            wins[index] = _totalWins[_topWinners[i]];
         }
-        return result;
+
+        return (peerIds, wins);
     }
 }

@@ -537,16 +537,17 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(2, winners2);
 
         // Get top 3 voters
-        address[] memory topVoters = swarmCoordinator.voterLeaderboard(0, 3);
+        (address[] memory voters, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(0, 3);
 
-        // Verify order
-        assertEq(topVoters.length, 3);
-        assertEq(topVoters[0], _user1);
-        assertEq(topVoters[1], _user2);
-        assertEq(topVoters[2], _user);
-        assertEq(swarmCoordinator.getVoterVoteCount(topVoters[0]), 1);
-        assertEq(swarmCoordinator.getVoterVoteCount(topVoters[1]), 1);
-        assertEq(swarmCoordinator.getVoterVoteCount(topVoters[2]), 1);
+        // Verify order and vote counts
+        assertEq(voters.length, 3);
+        assertEq(voteCounts.length, 3);
+        assertEq(voters[0], _user1);
+        assertEq(voteCounts[0], 1);
+        assertEq(voters[1], _user2);
+        assertEq(voteCounts[1], 1);
+        assertEq(voters[2], _user);
+        assertEq(voteCounts[2], 1);
     }
 
     function test_VoterLeaderboard_ReturnsCorrectSlice() public {
@@ -592,10 +593,17 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(2, winners2);
 
         // Get slice from index 2 to 3
-        address[] memory slice = swarmCoordinator.voterLeaderboard(2, 3);
-        assertEq(slice.length, 1);
-        assertEq(slice[0], _user);
-        assertEq(swarmCoordinator.getVoterVoteCount(slice[0]), 1);
+        (address[] memory voters, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(2, 3);
+        assertEq(voters.length, 1);
+        assertEq(voteCounts.length, 1);
+        assertEq(voters[0], _user);
+        assertEq(voteCounts[0], 1);
+    }
+
+    function test_VoterLeaderboard_ReturnsEmptyArrays_WhenNoVoters() public {
+        (address[] memory voters, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(0, 10);
+        assertEq(voters.length, 0);
+        assertEq(voteCounts.length, 0);
     }
 
     function test_WinnerLeaderboard_ReturnsCorrectOrder() public {
@@ -641,16 +649,17 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(2, winners2);
 
         // Get top 3 winners
-        string[] memory topWinners = swarmCoordinator.winnerLeaderboard(0, 3);
+        (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(0, 3);
 
-        // Verify order
-        assertEq(topWinners.length, 3);
-        assertEq(topWinners[0], winners1[0]);
-        assertEq(topWinners[1], winners1[1]);
-        assertEq(topWinners[2], winners2[0]);
-        assertEq(swarmCoordinator.getTotalWins(topWinners[0]), 2);
-        assertEq(swarmCoordinator.getTotalWins(topWinners[1]), 2);
-        assertEq(swarmCoordinator.getTotalWins(topWinners[2]), 1);
+        // Verify order and win counts
+        assertEq(peerIds.length, 3);
+        assertEq(wins.length, 3);
+        assertEq(peerIds[0], winners1[0]);
+        assertEq(wins[0], 2);
+        assertEq(peerIds[1], winners1[1]);
+        assertEq(wins[1], 2);
+        assertEq(peerIds[2], winners2[0]);
+        assertEq(wins[2], 1);
     }
 
     function test_WinnerLeaderboard_ReturnsCorrectSlice() public {
@@ -696,10 +705,11 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(2, winners2);
 
         // Get slice from index 2 to 3
-        string[] memory slice = swarmCoordinator.winnerLeaderboard(2, 3);
-        assertEq(slice.length, 1);
-        assertEq(slice[0], winners2[0]);
-        assertEq(swarmCoordinator.getTotalWins(slice[0]), 1);
+        (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(2, 3);
+        assertEq(peerIds.length, 1);
+        assertEq(wins.length, 1);
+        assertEq(peerIds[0], winners2[0]);
+        assertEq(wins[0], 1);
     }
 
     function test_WinnerLeaderboard_HandlesInvalidIndexes() public {
@@ -719,17 +729,21 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.winnerLeaderboard(2, 1);
 
         // Test with start > length
-        string[] memory result = swarmCoordinator.winnerLeaderboard(5, 10);
-        assertEq(result.length, 0);
+        (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(5, 10);
+        assertEq(peerIds.length, 0);
+        assertEq(wins.length, 0);
 
         // Test with end > length
-        result = swarmCoordinator.winnerLeaderboard(0, 10);
-        assertEq(result.length, 1);
-        assertEq(result[0], winners[0]);
+        (peerIds, wins) = swarmCoordinator.winnerLeaderboard(0, 10);
+        assertEq(peerIds.length, 1);
+        assertEq(wins.length, 1);
+        assertEq(peerIds[0], winners[0]);
+        assertEq(wins[0], 1);
     }
 
-    function test_WinnerLeaderboard_ReturnsEmptyArray_WhenNoWinners() public {
-        string[] memory result = swarmCoordinator.winnerLeaderboard(0, 10);
-        assertEq(result.length, 0);
+    function test_WinnerLeaderboard_ReturnsEmptyArrays_WhenNoWinners() public {
+        (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(0, 10);
+        assertEq(peerIds.length, 0);
+        assertEq(wins.length, 0);
     }
 }
