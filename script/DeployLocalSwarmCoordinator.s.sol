@@ -49,7 +49,6 @@ contract DeployLocalSwarmCoordinator is Script {
 
         // Set up stages (1 stage, each 1 blocks long)
         coordinator.setStageCount(1);
-        coordinator.setStageDuration(0, 1);
 
         // Add bootnodes
         coordinator.addBootnodes(bootnodes);
