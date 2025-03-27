@@ -160,7 +160,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Peer ID 2 not stored correctly");
     }
 
-    function test_Anyone_CanUpdate_ItsOwnPeerId() public {
+    function test_Anyone_CannotUpdate_ItsOwnPeerId() public {
         address user = makeAddr("user");
         bytes memory peerId1 = bytes("peerId1");
         bytes memory peerId2 = bytes("peerId2");
@@ -175,16 +175,35 @@ contract SwarmCoordinatorTest is Test {
         bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user);
         assertEq(keccak256(storedPeerId1), keccak256(peerId1), "First peer ID not stored correctly");
 
-        // User updates to second peer
+        // User tries to update to second peer
         vm.prank(user);
-        vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.PeerRegistered(user, peerId2);
+        vm.expectRevert(SwarmCoordinator.PeerIdAlreadyClaimed.selector);
         swarmCoordinator.registerPeer(peerId2);
 
-        // Verify second peer ID overwrote the first one
+        // Verify peer ID was not changed
         bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user);
-        assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Second peer ID not stored correctly");
-        assertTrue(keccak256(storedPeerId2) != keccak256(peerId1), "Peer ID was not updated");
+        assertEq(keccak256(storedPeerId2), keccak256(peerId1), "Peer ID should not have been updated");
+    }
+
+    function test_Anyone_CannotClaim_AlreadyClaimedPeerId() public {
+        address user1 = makeAddr("user1");
+        address user2 = makeAddr("user2");
+        bytes memory peerId = bytes("peerId1");
+
+        // First user registers peer
+        vm.prank(user1);
+        vm.expectEmit(true, true, false, true);
+        emit SwarmCoordinator.PeerRegistered(user1, peerId);
+        swarmCoordinator.registerPeer(peerId);
+
+        // Second user tries to claim the same peer ID
+        vm.prank(user2);
+        vm.expectRevert(SwarmCoordinator.PeerIdAlreadyClaimed.selector);
+        swarmCoordinator.registerPeer(peerId);
+
+        // Verify the peer ID is still associated with the first user
+        bytes memory storedPeerId = swarmCoordinator.getPeerId(user1);
+        assertEq(keccak256(storedPeerId), keccak256(peerId), "Peer ID should still be associated with first user");
     }
 
     // Bootnode tests

@@ -92,6 +92,7 @@ contract SwarmCoordinator is Ownable {
     error NotJudge();
     error InvalidRoundNumber();
     error WinnerAlreadySubmitted();
+    error PeerIdAlreadyClaimed();
 
     // .-------------------------------------------------------------------------------------.
     // | ██████   ██████              █████  ███     ██████   ███                            |
@@ -232,15 +233,22 @@ contract SwarmCoordinator is Ownable {
     function registerPeer(bytes calldata peerId) external {
         address eoa = msg.sender;
 
-        // Clear any existing peer ID mapping for this EOA
+        // Check if the peer ID is already claimed by someone else
+        bytes32 peerIdHash = keccak256(peerId);
+        address existingEoa = _peerIdToEoa[peerIdHash];
+        if (existingEoa != address(0) && existingEoa != eoa) {
+            revert PeerIdAlreadyClaimed();
+        }
+
+        // Check if the EOA already has a peer ID
         bytes32 oldPeerIdHash = keccak256(_eoaToPeerId[eoa]);
         if (oldPeerIdHash != bytes32(0)) {
-            delete _peerIdToEoa[oldPeerIdHash];
+            revert PeerIdAlreadyClaimed();
         }
 
         // Set new mappings
         _eoaToPeerId[eoa] = peerId;
-        _peerIdToEoa[keccak256(peerId)] = eoa;
+        _peerIdToEoa[peerIdHash] = eoa;
 
         emit PeerRegistered(eoa, peerId);
     }
