@@ -63,7 +63,7 @@ contract DeployLocalSwarmCoordinator is Script {
         }
     }
 
-    function submitWinners(SwarmCoordinator coordinator_, uint256 round, address[] calldata winners) public {
+    function submitWinners(SwarmCoordinator coordinator_, uint256 round, string[] calldata winners) public {
         vm.startBroadcast(deployerPrivateKey);
 
         console2.log("Submitting winners for round:", round);
@@ -72,7 +72,7 @@ contract DeployLocalSwarmCoordinator is Script {
         }
 
         // Submit winners
-        coordinator_.submitWinner(round, winners);
+        coordinator_.submitWinners(round, winners);
 
         vm.stopBroadcast();
     }
@@ -84,9 +84,15 @@ contract DeployLocalSwarmCoordinator is Script {
         console2.log("Current Stage:", coordinator.currentStage());
         console2.log("Total Bootnodes:", coordinator.getBootnodesCount());
         console2.log("Top Winners:");
-        address[] memory topWinners = coordinator.leaderboard(0, 3);
+        string[] memory topWinners = coordinator.winnerLeaderboard(0, 3);
         for (uint256 i = 0; i < topWinners.length; i++) {
             console2.log(topWinners[i], coordinator.getTotalWins(topWinners[i]));
+        }
+
+        console2.log("Top Voters:");
+        address[] memory topVoters = coordinator.voterLeaderboard(0, 3);
+        for (uint256 i = 0; i < topVoters.length; i++) {
+            console2.log(topVoters[i], coordinator.getVoterVoteCount(topVoters[i]));
         }
     }
 }

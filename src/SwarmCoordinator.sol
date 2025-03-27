@@ -34,16 +34,22 @@ contract SwarmCoordinator is Ownable {
     mapping(string => address) _peerIdToEoa;
 
     // Winner management state
-    // Address authorized to submit winners
-    address private _judge;
-    // Maps round number to winner addresses
-    mapping(uint256 => address[]) private _roundWinners;
-    // Maps address to total number of wins
-    mapping(address => uint256) private _totalWins;
+    // Maps round number to winner peer IDs
+    mapping(uint256 => string[]) private _roundWinners;
+    // Maps peer ID to total number of wins
+    mapping(string => uint256) private _totalWins;
     // Array of top winners (sorted by wins)
-    address[] private _topWinners;
+    string[] private _topWinners;
     // Maximum number of top winners to track
     uint256 private constant MAX_TOP_WINNERS = 100;
+    // Maps round number to mapping of voter address to their voted peer IDs
+    mapping(uint256 => mapping(address => string[])) private _roundVotes;
+    // Maps round number to mapping of peer ID to number of votes received
+    mapping(uint256 => mapping(string => uint256)) private _roundVoteCounts;
+    // Maps voter address to number of times they have voted
+    mapping(address => uint256) private _voterVoteCounts;
+    // Array of top voters (sorted by number of votes)
+    address[] private _topVoters;
 
     // Bootnode management state
     // Address authorized to manage bootnodes
@@ -69,8 +75,7 @@ contract SwarmCoordinator is Ownable {
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
-    event JudgeUpdated(address indexed previousJudge, address indexed newJudge);
-    event WinnerSubmitted(uint256 indexed roundNumber, address[] winners);
+    event WinnerSubmitted(address indexed voter, uint256 indexed roundNumber, string[] winners);
     event StageUpdaterUpdated(address indexed previousUpdater, address indexed newUpdater);
 
     // .----------------------------------------------------------.
@@ -87,11 +92,11 @@ contract SwarmCoordinator is Ownable {
     error StageOutOfBounds();
     error OnlyBootnodeManager();
     error InvalidBootnodeIndex();
-    error NotJudge();
     error InvalidRoundNumber();
-    error WinnerAlreadySubmitted();
+    error WinnerAlreadyVoted();
     error OnlyStageUpdater();
     error PeerIdAlreadyRegistered();
+    error InvalidPeerId();
 
     // .-------------------------------------------------------------------------------------.
     // | ██████   ██████              █████  ███     ██████   ███                            |
@@ -116,12 +121,6 @@ contract SwarmCoordinator is Ownable {
         _;
     }
 
-    // Judge modifier
-    modifier onlyJudge() {
-        if (msg.sender != _judge) revert NotJudge();
-        _;
-    }
-
     // .--------------------------------------------------------------------------------------------------------------.
     // |   █████████                               █████                                   █████                      |
     // |  ███░░░░░███                             ░░███                                   ░░███                       |
@@ -136,7 +135,6 @@ contract SwarmCoordinator is Ownable {
     constructor() Ownable(msg.sender) {
         setStageUpdater(msg.sender);
         setBootnodeManager(msg.sender);
-        setJudge(msg.sender);
 
         emit BootnodeManagerUpdated(address(0), msg.sender);
     }
@@ -352,58 +350,99 @@ contract SwarmCoordinator is Ownable {
     // '---------------------------------------------------------------------------'
 
     /**
-     * @dev Sets a new judge
-     * @param newJudge The address of the new judge
-     * @notice Only callable by the contract owner
+     * @dev Submits a list of winners for a specific round
+     * @param roundNumber The round number for which to submit the winners
+     * @param winners The list of peer IDs that should win
      */
-    function setJudge(address newJudge) public onlyOwner {
-        address oldJudge = _judge;
-        _judge = newJudge;
-        emit JudgeUpdated(oldJudge, newJudge);
-    }
-
-    /**
-     * @dev Returns the current judge
-     * @return The address of the current judge
-     */
-    function judge() external view returns (address) {
-        return _judge;
-    }
-
-    /**
-     * @dev Submits a winner for a specific round
-     * @param roundNumber The round number for which to submit the winner
-     * @param winners The address of the winning peer
-     * @notice Only callable by the judge
-     */
-    function submitWinner(uint256 roundNumber, address[] calldata winners) external onlyJudge {
+    function submitWinners(uint256 roundNumber, string[] memory winners) external {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
-        // Record the winners
-        _roundWinners[roundNumber] = winners;
+        // Check if sender has already voted
+        if (_roundVotes[roundNumber][msg.sender].length > 0) revert WinnerAlreadyVoted();
 
-        // Update total wins and maintain top winners list
+        // Validate all peer IDs exist
         for (uint256 i = 0; i < winners.length; i++) {
-            address winner = winners[i];
-            _totalWins[winner]++;
-            _updateTopWinners(winner);
+            if (_peerIdToEoa[winners[i]] == address(0)) revert InvalidPeerId();
         }
 
-        emit WinnerSubmitted(roundNumber, winners);
+        // Record the vote
+        _roundVotes[roundNumber][msg.sender] = winners;
+
+        // Update vote counts
+        for (uint256 i = 0; i < winners.length; i++) {
+            _roundVoteCounts[roundNumber][winners[i]]++;
+        }
+
+        // Update how many times each voter has voted
+        _voterVoteCounts[msg.sender]++;
+        _updateTopVoters(msg.sender);
+
+        // Update total wins and top winners
+        for (uint256 i = 0; i < winners.length; i++) {
+            _totalWins[winners[i]]++;
+            _updateTopWinners(winners[i]);
+        }
+
+        emit WinnerSubmitted(msg.sender, roundNumber, winners);
+    }
+
+    /**
+     * @dev Updates the top voters list when a voter's score changes
+     * @param voter The address whose score has changed
+     */
+    function _updateTopVoters(address voter) internal {
+        uint256 voterVotes = _voterVoteCounts[voter];
+
+        // Find if voter is already in the list
+        uint256 currentIndex = type(uint256).max;
+        for (uint256 i = 0; i < _topVoters.length; i++) {
+            if (_topVoters[i] == voter) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        if (currentIndex == type(uint256).max) {
+            // Voter is not in the list
+            if (_topVoters.length < MAX_TOP_WINNERS) {
+                // List is not full, add to end
+                _topVoters.push(voter);
+                currentIndex = _topVoters.length - 1;
+            } else {
+                // List is full, check if voter should be added
+                if (_voterVoteCounts[_topVoters[_topVoters.length - 1]] < voterVotes) {
+                    // Replace last place
+                    _topVoters[_topVoters.length - 1] = voter;
+                    currentIndex = _topVoters.length - 1;
+                } else {
+                    // Voter doesn't qualify for top list
+                    return;
+                }
+            }
+        }
+
+        // Move voter up in the list if needed
+        while (currentIndex > 0 && _voterVoteCounts[_topVoters[currentIndex - 1]] < voterVotes) {
+            // Swap with previous position
+            address temp = _topVoters[currentIndex - 1];
+            _topVoters[currentIndex - 1] = _topVoters[currentIndex];
+            _topVoters[currentIndex] = temp;
+            currentIndex--;
+        }
     }
 
     /**
      * @dev Updates the top winners list when a winner's score changes
-     * @param winner The address whose score has changed
+     * @param winner The peer ID whose score has changed
      */
-    function _updateTopWinners(address winner) internal {
+    function _updateTopWinners(string memory winner) internal {
         uint256 winnerWins = _totalWins[winner];
 
         // Find if winner is already in the list
         uint256 currentIndex = type(uint256).max;
         for (uint256 i = 0; i < _topWinners.length; i++) {
-            if (_topWinners[i] == winner) {
+            if (keccak256(bytes(_topWinners[i])) == keccak256(bytes(winner))) {
                 currentIndex = i;
                 break;
             }
@@ -431,7 +470,7 @@ contract SwarmCoordinator is Ownable {
         // Move winner up in the list if needed
         while (currentIndex > 0 && _totalWins[_topWinners[currentIndex - 1]] < winnerWins) {
             // Swap with previous position
-            address temp = _topWinners[currentIndex - 1];
+            string memory temp = _topWinners[currentIndex - 1];
             _topWinners[currentIndex - 1] = _topWinners[currentIndex];
             _topWinners[currentIndex] = temp;
             currentIndex--;
@@ -439,21 +478,49 @@ contract SwarmCoordinator is Ownable {
     }
 
     /**
-     * @dev Gets the winners for a specific round
-     * @param roundNumber The round number to query
-     * @return Array of winner addresses for that round (empty array if no winners set)
+     * @dev Gets the number of times a voter has voted
+     * @param voter The address of the voter
+     * @return The number of times the voter has voted
      */
-    function getRoundWinners(uint256 roundNumber) external view returns (address[] memory) {
-        return _roundWinners[roundNumber];
+    function getVoterVoteCount(address voter) external view returns (uint256) {
+        return _voterVoteCounts[voter];
     }
 
     /**
-     * @dev Gets the total number of wins for an address
-     * @param account The address to query
-     * @return The total number of wins for the address
+     * @dev Gets a slice of the voter leaderboard
+     * @param start The starting index (inclusive)
+     * @param end The ending index (exclusive)
+     * @return Array of addresses sorted by number of votes (descending)
      */
-    function getTotalWins(address account) external view returns (uint256) {
-        return _totalWins[account];
+    function voterLeaderboard(uint256 start, uint256 end) external view returns (address[] memory) {
+        // Ensure start is not greater than end
+        require(start <= end, "Start index must be less than or equal to end index");
+
+        // Ensure end is not greater than the length of the list
+        if (end > _topVoters.length) {
+            end = _topVoters.length;
+        }
+
+        // Ensure start is not greater than the length of the list
+        if (start > _topVoters.length) {
+            start = _topVoters.length;
+        }
+
+        // Create result array with the correct size
+        address[] memory result = new address[](end - start);
+        for (uint256 i = start; i < end; i++) {
+            result[i - start] = _topVoters[i];
+        }
+        return result;
+    }
+
+    /**
+     * @dev Gets the winners for a specific round
+     * @param roundNumber The round number to query
+     * @return Array of winner peer IDs for that round (empty array if no winners set)
+     */
+    function getRoundWinners(uint256 roundNumber) external view returns (string[] memory) {
+        return _roundWinners[roundNumber];
     }
 
     /**
@@ -461,18 +528,37 @@ contract SwarmCoordinator is Ownable {
      * @param peerId The peer ID to query
      * @return The total number of wins for the peer ID
      */
-    function getTotalWinsByPeerId(string calldata peerId) external view returns (uint256) {
-        address eoa = _peerIdToEoa[peerId];
-        return eoa == address(0) ? 0 : _totalWins[eoa];
+    function getTotalWins(string calldata peerId) external view returns (uint256) {
+        return _totalWins[peerId];
+    }
+
+    /**
+     * @dev Gets the votes for a specific round from a specific voter
+     * @param roundNumber The round number to query
+     * @param voter The address of the voter
+     * @return Array of peer IDs that the voter voted for
+     */
+    function getVoterVotes(uint256 roundNumber, address voter) external view returns (string[] memory) {
+        return _roundVotes[roundNumber][voter];
+    }
+
+    /**
+     * @dev Gets the vote count for a specific peer ID in a round
+     * @param roundNumber The round number to query
+     * @param peerId The peer ID to query
+     * @return The number of votes received by the peer ID in that round
+     */
+    function getPeerVoteCount(uint256 roundNumber, string calldata peerId) external view returns (uint256) {
+        return _roundVoteCounts[roundNumber][peerId];
     }
 
     /**
      * @dev Gets a slice of the leaderboard
      * @param start The starting index (inclusive)
      * @param end The ending index (exclusive)
-     * @return Array of addresses sorted by number of wins (descending)
+     * @return Array of peer IDs sorted by number of wins (descending)
      */
-    function leaderboard(uint256 start, uint256 end) external view returns (address[] memory) {
+    function winnerLeaderboard(uint256 start, uint256 end) external view returns (string[] memory) {
         // Ensure start is not greater than end
         require(start <= end, "Start index must be less than or equal to end index");
 
@@ -487,7 +573,7 @@ contract SwarmCoordinator is Ownable {
         }
 
         // Create result array with the correct size
-        address[] memory result = new address[](end - start);
+        string[] memory result = new string[](end - start);
         for (uint256 i = start; i < end; i++) {
             result[i - start] = _topWinners[i];
         }
