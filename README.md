@@ -256,3 +256,14 @@ For more information about the development environment:
 ### How did you generate the ascii sections in the source code?
 
 I used https://www.asciiart.eu/text-to-ascii-art with the DOS Rebel font.
+
+### How do I generate a code coverage report?
+
+```bash
+forge coverage --report lcov ; genhtml lcov.info -o report
+```
+
+Once that's done you can use either:
+
+- [Live Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server)
+- [Coverage Gutters](https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters)
