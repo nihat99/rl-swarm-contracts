@@ -141,8 +141,10 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
 
         // Verify the mapping was updated correctly using the getter function
-        string memory storedPeerId = swarmCoordinator.getPeerId(user);
-        assertEq(storedPeerId, peerId, "Peer ID not stored correctly");
+        address[] memory addresses = new address[](1);
+        addresses[0] = user;
+        string[] memory storedPeerIds = swarmCoordinator.getPeerId(addresses);
+        assertEq(storedPeerIds[0], peerId, "Peer ID not stored correctly");
     }
 
     function test_Anyone_CanRegister_DifferentPeerIds() public {
@@ -164,10 +166,12 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
 
         // Verify the mappings were updated correctly
-        string memory storedPeerId1 = swarmCoordinator.getPeerId(user1);
-        string memory storedPeerId2 = swarmCoordinator.getPeerId(user2);
-        assertEq(storedPeerId1, peerId1, "Peer ID 1 not stored correctly");
-        assertEq(storedPeerId2, peerId2, "Peer ID 2 not stored correctly");
+        address[] memory addresses = new address[](2);
+        addresses[0] = user1;
+        addresses[1] = user2;
+        string[] memory storedPeerIds = swarmCoordinator.getPeerId(addresses);
+        assertEq(storedPeerIds[0], peerId1, "Peer ID 1 not stored correctly");
+        assertEq(storedPeerIds[1], peerId2, "Peer ID 2 not stored correctly");
     }
 
     function test_Nobody_CanUpdate_ItsOwnPeerId() public {
@@ -182,8 +186,10 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId1);
 
         // Verify first peer ID was stored correctly
-        string memory storedPeerId1 = swarmCoordinator.getPeerId(user);
-        assertEq(storedPeerId1, peerId1, "First peer ID not stored correctly");
+        address[] memory addresses = new address[](1);
+        addresses[0] = user;
+        string[] memory storedPeerIds = swarmCoordinator.getPeerId(addresses);
+        assertEq(storedPeerIds[0], peerId1, "First peer ID not stored correctly");
 
         // Try to update to second peer - should fail
         vm.prank(user);
@@ -191,8 +197,60 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
 
         // Verify peer ID was not changed
-        string memory storedPeerId2 = swarmCoordinator.getPeerId(user);
-        assertEq(storedPeerId2, peerId1, "Peer ID should not have changed");
+        storedPeerIds = swarmCoordinator.getPeerId(addresses);
+        assertEq(storedPeerIds[0], peerId1, "Peer ID should not have changed");
+    }
+
+    function test_Anyone_CanGetEoa_ForPeerId() public {
+        address user = makeAddr("user");
+        string memory peerId = "QmPeer1";
+
+        // Register peer
+        vm.prank(user);
+        swarmCoordinator.registerPeer(peerId);
+
+        // Verify the EOA mapping was updated correctly
+        string[] memory peerIds = new string[](1);
+        peerIds[0] = peerId;
+        address[] memory eoas = swarmCoordinator.getEoa(peerIds);
+        assertEq(eoas[0], user, "EOA not stored correctly");
+    }
+
+    function test_Anyone_CanGetEoa_ForMultiplePeerIds() public {
+        address user1 = makeAddr("user1");
+        address user2 = makeAddr("user2");
+        string memory peerId1 = "peerId1";
+        string memory peerId2 = "peerId2";
+
+        // Register peers
+        vm.prank(user1);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.prank(user2);
+        swarmCoordinator.registerPeer(peerId2);
+
+        // Verify the EOA mappings were updated correctly
+        string[] memory peerIds = new string[](2);
+        peerIds[0] = peerId1;
+        peerIds[1] = peerId2;
+        address[] memory eoas = swarmCoordinator.getEoa(peerIds);
+        assertEq(eoas[0], user1, "EOA 1 not stored correctly");
+        assertEq(eoas[1], user2, "EOA 2 not stored correctly");
+    }
+
+    function test_GetEoa_ReturnsZeroAddress_ForUnregisteredPeerId() public {
+        string memory unregisteredPeerId = "unregistered";
+        string[] memory peerIds = new string[](1);
+        peerIds[0] = unregisteredPeerId;
+        address[] memory eoas = swarmCoordinator.getEoa(peerIds);
+        assertEq(eoas[0], address(0), "Unregistered peer ID should return zero address");
+    }
+
+    function test_GetPeerId_ReturnsEmptyString_ForUnregisteredEoa() public {
+        address unregisteredEoa = makeAddr("unregistered");
+        address[] memory eoas = new address[](1);
+        eoas[0] = unregisteredEoa;
+        string[] memory peerIds = swarmCoordinator.getPeerId(eoas);
+        assertEq(peerIds[0], "", "Unregistered EOA should return empty array");
     }
 
     // Bootnode tests

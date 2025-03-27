@@ -242,12 +242,29 @@ contract SwarmCoordinator is Ownable {
     }
 
     /**
-     * @dev Retrieves the peer ID associated with an EOA address
-     * @param eoa The EOA address to look up
-     * @return The peer ID associated with the EOA address
+     * @dev Retrieves the peer IDs associated with multiple EOA addresses
+     * @param eoas Array of EOA addresses to look up
+     * @return Array of peer IDs associated with the EOA addresses
      */
-    function getPeerId(address eoa) external view returns (string memory) {
-        return _eoaToPeerId[eoa];
+    function getPeerId(address[] calldata eoas) external view returns (string[] memory) {
+        string[] memory peerIds = new string[](eoas.length);
+        for (uint256 i = 0; i < eoas.length; i++) {
+            peerIds[i] = _eoaToPeerId[eoas[i]];
+        }
+        return peerIds;
+    }
+
+    /**
+     * @dev Retrieves the EOA addresses associated with multiple peer IDs
+     * @param peerIds Array of peer IDs to look up
+     * @return Array of EOA addresses associated with the peer IDs
+     */
+    function getEoa(string[] calldata peerIds) external view returns (address[] memory) {
+        address[] memory eoas = new address[](peerIds.length);
+        for (uint256 i = 0; i < peerIds.length; i++) {
+            eoas[i] = _peerIdToEoa[peerIds[i]];
+        }
+        return eoas;
     }
 
     // .----------------------------------------------------------------------------------------.
