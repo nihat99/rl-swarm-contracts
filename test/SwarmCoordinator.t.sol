@@ -732,4 +732,53 @@ contract SwarmCoordinatorTest is Test {
         string[] memory result = swarmCoordinator.winnerLeaderboard(0, 10);
         assertEq(result.length, 0);
     }
+
+    function test_WinnerLeaderboard_CorrectlyHandlesMoreThanMaxTopWinners() public {
+        string[] memory winners = new string[](100);
+        address[] memory users = new address[](100);
+        for (uint256 i = 0; i < 100; i++) {
+            winners[i] = string(abi.encodePacked("QmWinner", abi.encodePacked(i)));
+            users[i] = makeAddr(string(abi.encodePacked("user", i)));
+
+            // Register user
+            vm.prank(users[i]);
+            swarmCoordinator.registerPeer(winners[i]);
+        }
+
+        // Register voter
+        vm.prank(_user);
+        swarmCoordinator.registerPeer("QmUser");
+
+        // Submit winners
+        vm.prank(_user);
+        swarmCoordinator.submitWinners(0, winners);
+
+        // Get top 100 winners
+        string[] memory topWinners = swarmCoordinator.winnerLeaderboard(0, 100);
+        assertEq(topWinners.length, 100);
+        for (uint256 i = 0; i < 100; i++) {
+            assertEq(topWinners[i], winners[i]);
+        }
+
+        // Add two votes for a new winner
+        string[] memory topWinner = new string[](1);
+        topWinner[0] = "QmUser";
+
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+
+        vm.prank(_user);
+        swarmCoordinator.submitWinners(1, topWinner);
+
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+
+        vm.prank(_user);
+        swarmCoordinator.submitWinners(2, topWinner);
+
+        // New winner bubbled up the leaderboard
+        topWinners = swarmCoordinator.winnerLeaderboard(0, 1);
+        assertEq(topWinners[0], "QmUser");
+        assertEq(swarmCoordinator.getTotalWins("QmUser"), 2);
+    }
 }

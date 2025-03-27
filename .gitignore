@@ -16,3 +16,7 @@ docs/
 
 # Local deployment files
 .contract-address
+
+# Coverage files
+report/
+lcov.info
