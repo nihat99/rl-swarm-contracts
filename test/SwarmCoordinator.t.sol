@@ -11,6 +11,7 @@ contract SwarmCoordinatorTest is Test {
     address _bootnodeManager = makeAddr("bootnodeManager");
     address _judge = makeAddr("judge");
     address _user = makeAddr("user");
+    address _stageUpdater = makeAddr("stageUpdater");
 
     function setUp() public {
         vm.startPrank(_owner);
@@ -20,32 +21,7 @@ contract SwarmCoordinatorTest is Test {
 
     function test_SwarmCoordinator_IsCorrectlyDeployed() public view {
         assertEq(swarmCoordinator.owner(), address(_owner));
-    }
-
-    function test_Owner_CanSetStageDurations_Successfully() public {
-        uint256 stage_ = 5;
-        uint256 stageDuration_ = 100;
-
-        vm.startPrank(_owner);
-        // We make sure we got enough stages set to avoid an out of bounds error
-        swarmCoordinator.setStageCount(stage_ + 1);
-        swarmCoordinator.setStageDuration(stage_, stageDuration_);
-        vm.stopPrank();
-    }
-
-    function test_Owner_CannotSetStageDuration_ForOutOfBoundsStage() public {
-        uint256 stageCount_ = 3;
-
-        vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(stageCount_);
-        vm.expectRevert(SwarmCoordinator.StageOutOfBounds.selector);
-        swarmCoordinator.setStageDuration(stageCount_, 100);
-        vm.stopPrank();
-    }
-
-    function test_Nobody_CanSetStageDurations_Successfully() public {
-        vm.expectRevert();
-        swarmCoordinator.setStageDuration(0, 1);
+        assertEq(swarmCoordinator.stageUpdater(), address(_owner));
     }
 
     function test_Owner_CanSetStageCount_Successfully(uint256 stageCount) public {
@@ -64,53 +40,86 @@ contract SwarmCoordinatorTest is Test {
         assertEq(currentRound, 0);
     }
 
-    function test_Anyone_CanAdvanceStage_IfEnoughTimeHasPassed() public {
+    function test_StageUpdater_CanAdvanceStage() public {
         uint256 stageCount_ = 2;
-        uint256 stageDuration_ = 100;
 
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(stageCount_);
-        swarmCoordinator.setStageDuration(0, stageDuration_);
-        swarmCoordinator.setStageDuration(1, stageDuration_);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
         vm.stopPrank();
 
         uint256 startingStage = uint256(swarmCoordinator.currentStage());
 
-        vm.roll(block.number + stageDuration_ + 1);
+        vm.prank(_stageUpdater);
         (, uint256 newStage) = swarmCoordinator.updateStageAndRound();
 
         assertEq(newStage, startingStage + 1);
     }
 
-    function test_Nobody_CanAdvanceStage_IfNotEnoughTimeHasPassed() public {
-        uint256 stageDuration_ = 100;
-
-        vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, stageDuration_);
-        vm.stopPrank();
-
-        vm.roll(block.number + stageDuration_ - 1);
-
-        vm.expectRevert(SwarmCoordinator.StageDurationNotElapsed.selector);
-        swarmCoordinator.updateStageAndRound();
-    }
-
-    function test_Anyone_CanAdvanceRound_IfEnoughTimeHasPassed() public {
-        uint256 stageCount_ = 3;
-        uint256 stageDuration_ = 100;
+    function test_NonStageUpdater_CannotAdvanceStage() public {
+        uint256 stageCount_ = 2;
 
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(stageCount_);
-        swarmCoordinator.setStageDuration(0, stageDuration_);
-        swarmCoordinator.setStageDuration(1, stageDuration_);
-        swarmCoordinator.setStageDuration(2, stageDuration_);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
+        vm.stopPrank();
+
+        vm.prank(_user);
+        vm.expectRevert(SwarmCoordinator.OnlyStageUpdater.selector);
+        swarmCoordinator.updateStageAndRound();
+    }
+
+    function test_StageUpdater_CanAdvanceRound() public {
+        uint256 stageCount_ = 2;
+
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(stageCount_);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
         vm.stopPrank();
 
         uint256 startingRound = uint256(swarmCoordinator.currentRound());
 
+        // Advance through all stages to trigger round advancement
         for (uint256 i = 0; i < stageCount_; i++) {
-            vm.roll(block.number + stageDuration_ + 1);
+            vm.prank(_stageUpdater);
+            swarmCoordinator.updateStageAndRound();
+        }
+
+        uint256 newRound = uint256(swarmCoordinator.currentRound());
+        uint256 newStage = uint256(swarmCoordinator.currentStage());
+        assertEq(newRound, startingRound + 1);
+        assertEq(newStage, 0);
+    }
+
+    function test_Owner_CanSet_StageUpdater() public {
+        vm.startPrank(_owner);
+        vm.expectEmit(true, true, false, false);
+        emit SwarmCoordinator.StageUpdaterUpdated(_owner, _stageUpdater);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
+        vm.stopPrank();
+
+        assertEq(swarmCoordinator.stageUpdater(), _stageUpdater);
+    }
+
+    function test_NonOwner_CannotSet_StageUpdater() public {
+        vm.prank(_user);
+        vm.expectRevert();
+        swarmCoordinator.setStageUpdater(_stageUpdater);
+    }
+
+    function test_Anyone_CanAdvanceRound_IfEnoughTimeHasPassed() public {
+        uint256 stageCount_ = 3;
+
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(stageCount_);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
+        vm.stopPrank();
+
+        uint256 startingRound = uint256(swarmCoordinator.currentRound());
+
+        // Advance through all stages to trigger round advancement
+        for (uint256 i = 0; i < stageCount_; i++) {
+            vm.prank(_stageUpdater);
             swarmCoordinator.updateStageAndRound();
         }
 
@@ -122,7 +131,7 @@ contract SwarmCoordinatorTest is Test {
 
     function test_Anyone_CanAddPeer_Successfully() public {
         address user = makeAddr("user");
-        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
+        string memory peerId = "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N";
 
         vm.startPrank(user);
         vm.expectEmit(true, true, false, true);
@@ -131,15 +140,15 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
 
         // Verify the mapping was updated correctly using the getter function
-        bytes memory storedPeerId = swarmCoordinator.getPeerId(user);
-        assertEq(keccak256(storedPeerId), keccak256(peerId), "Peer ID not stored correctly");
+        string memory storedPeerId = swarmCoordinator.getPeerId(user);
+        assertEq(storedPeerId, peerId, "Peer ID not stored correctly");
     }
 
     function test_Anyone_CanRegister_DifferentPeerIds() public {
         address user1 = makeAddr("user1");
         address user2 = makeAddr("user2");
-        bytes memory peerId1 = bytes("peerId1");
-        bytes memory peerId2 = bytes("peerId2");
+        string memory peerId1 = "peerId1";
+        string memory peerId2 = "peerId2";
 
         // First user registers peer
         vm.prank(user1);
@@ -154,16 +163,16 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
 
         // Verify the mappings were updated correctly
-        bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user1);
-        bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user2);
-        assertEq(keccak256(storedPeerId1), keccak256(peerId1), "Peer ID 1 not stored correctly");
-        assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Peer ID 2 not stored correctly");
+        string memory storedPeerId1 = swarmCoordinator.getPeerId(user1);
+        string memory storedPeerId2 = swarmCoordinator.getPeerId(user2);
+        assertEq(storedPeerId1, peerId1, "Peer ID 1 not stored correctly");
+        assertEq(storedPeerId2, peerId2, "Peer ID 2 not stored correctly");
     }
 
     function test_Anyone_CanUpdate_ItsOwnPeerId() public {
         address user = makeAddr("user");
-        bytes memory peerId1 = bytes("peerId1");
-        bytes memory peerId2 = bytes("peerId2");
+        string memory peerId1 = "peerId1";
+        string memory peerId2 = "peerId2";
 
         // User registers first peer
         vm.prank(user);
@@ -172,8 +181,8 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId1);
 
         // Verify first peer ID was stored correctly
-        bytes memory storedPeerId1 = swarmCoordinator.getPeerId(user);
-        assertEq(keccak256(storedPeerId1), keccak256(peerId1), "First peer ID not stored correctly");
+        string memory storedPeerId1 = swarmCoordinator.getPeerId(user);
+        assertEq(storedPeerId1, peerId1, "First peer ID not stored correctly");
 
         // User updates to second peer
         vm.prank(user);
@@ -182,9 +191,9 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
 
         // Verify second peer ID overwrote the first one
-        bytes memory storedPeerId2 = swarmCoordinator.getPeerId(user);
-        assertEq(keccak256(storedPeerId2), keccak256(peerId2), "Second peer ID not stored correctly");
-        assertTrue(keccak256(storedPeerId2) != keccak256(peerId1), "Peer ID was not updated");
+        string memory storedPeerId2 = swarmCoordinator.getPeerId(user);
+        assertEq(storedPeerId2, peerId2, "Second peer ID not stored correctly");
+        assertTrue(keccak256(bytes(storedPeerId2)) != keccak256(bytes(peerId1)), "Peer ID was not updated");
     }
 
     // Bootnode tests
@@ -453,8 +462,6 @@ contract SwarmCoordinatorTest is Test {
         // Forward to next round
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, 10);
-        vm.roll(block.number + 10);
         (uint256 newRound,) = swarmCoordinator.updateStageAndRound();
         assertEq(newRound, 1);
         vm.stopPrank();
@@ -476,10 +483,10 @@ contract SwarmCoordinatorTest is Test {
         address[] memory winners2 = new address[](1);
         winners2[0] = makeAddr("winner3");
 
-        // Set stage count and duration
+        // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, 10);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
         vm.stopPrank();
 
         // Set judge and submit winners for multiple rounds
@@ -491,7 +498,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinner(0, winners1);
 
         // Forward to next round
-        vm.roll(block.number + 10);
+        vm.prank(_stageUpdater);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 1
@@ -499,7 +506,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinner(1, winners2);
 
         // Forward to next round
-        vm.roll(block.number + 10);
+        vm.prank(_stageUpdater);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2 (same as round 0)
@@ -578,7 +585,7 @@ contract SwarmCoordinatorTest is Test {
         // Set stage count and duration
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, 10);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
         vm.stopPrank();
 
         // Set judge and submit winners for multiple rounds
@@ -590,7 +597,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinner(0, winners1);
 
         // Forward to next round
-        vm.roll(block.number + 10);
+        vm.prank(_stageUpdater);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 1
@@ -598,7 +605,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinner(1, winners2);
 
         // Forward to next round
-        vm.roll(block.number + 10);
+        vm.prank(_stageUpdater);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2 (same as round 0)
@@ -614,16 +621,16 @@ contract SwarmCoordinatorTest is Test {
 
     function test_GetTotalWinsByPeerId_ReturnsCorrectWins() public {
         address winner = makeAddr("winner");
-        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
+        string memory peerId = "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N";
 
         // Register peer ID
         vm.prank(winner);
         swarmCoordinator.registerPeer(peerId);
 
-        // Set stage count and duration
+        // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, 10);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
         vm.stopPrank();
 
         // Set judge and submit winners
@@ -637,7 +644,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinner(0, winners);
 
         // Forward to next round
-        vm.roll(block.number + 10);
+        vm.prank(_stageUpdater);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winner for round 1
@@ -649,23 +656,23 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_GetTotalWinsByPeerId_ReturnsZeroForUnknownPeerId() public {
-        bytes memory unknownPeerId = bytes("QmUnknownPeerId");
+        string memory unknownPeerId = "QmUnknownPeerId";
         assertEq(swarmCoordinator.getTotalWinsByPeerId(unknownPeerId), 0);
     }
 
     function test_GetTotalWinsByPeerId_ReturnsZeroForUnregisteredPeerId() public {
         address winner = makeAddr("winner");
-        bytes memory peerId = bytes("QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N");
-        bytes memory differentPeerId = bytes("QmDifferentPeerId");
+        string memory peerId = "QmYyQSo1c1Ym7orWxLYvCrM2EmxFTANf8wXmmE7DWjhx5N";
+        string memory differentPeerId = "QmDifferentPeerId";
 
         // Register peer ID
         vm.prank(winner);
         swarmCoordinator.registerPeer(peerId);
 
-        // Set stage count and duration
+        // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageDuration(0, 10);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
         vm.stopPrank();
 
         // Set judge and submit winners

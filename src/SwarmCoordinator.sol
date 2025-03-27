@@ -26,14 +26,12 @@ contract SwarmCoordinator is Ownable {
     uint256 _currentStage = 0;
     // Total number of stages in a round
     uint256 _stageCount = 0;
-    // Maps stage number to its duration in blocks
-    mapping(uint256 => uint256) _stageDurations;
-    // Block number when current stage started
-    uint256 _stageStartBlock;
+    // Address authorized to update stages and rounds
+    address private _stageUpdater;
     // Maps EOA addresses to their corresponding peer IDs
-    mapping(address => bytes) _eoaToPeerId;
+    mapping(address => string) _eoaToPeerId;
     // Maps peer IDs to their corresponding EOA addresses
-    mapping(bytes32 => address) _peerIdToEoa;
+    mapping(string => address) _peerIdToEoa;
 
     // Winner management state
     // Address authorized to submit winners
@@ -66,13 +64,14 @@ contract SwarmCoordinator is Ownable {
 
     event StageAdvanced(uint256 indexed roundNumber, uint256 newStage);
     event RoundAdvanced(uint256 indexed newRoundNumber);
-    event PeerRegistered(address indexed eoa, bytes peerId);
+    event PeerRegistered(address indexed eoa, string peerId);
     event BootnodeManagerUpdated(address indexed previousManager, address indexed newManager);
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
     event JudgeUpdated(address indexed previousJudge, address indexed newJudge);
     event WinnerSubmitted(uint256 indexed roundNumber, address[] winners);
+    event StageUpdaterUpdated(address indexed previousUpdater, address indexed newUpdater);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -85,13 +84,13 @@ contract SwarmCoordinator is Ownable {
     // |░░░░░░░░░░ ░░░░░     ░░░░░      ░░░░░░  ░░░░░     ░░░░░░  |
     // '----------------------------------------------------------'
 
-    error StageDurationNotElapsed();
     error StageOutOfBounds();
     error OnlyBootnodeManager();
     error InvalidBootnodeIndex();
     error NotJudge();
     error InvalidRoundNumber();
     error WinnerAlreadySubmitted();
+    error OnlyStageUpdater();
 
     // .-------------------------------------------------------------------------------------.
     // | ██████   ██████              █████  ███     ██████   ███                            |
@@ -103,6 +102,12 @@ contract SwarmCoordinator is Ownable {
     // | █████     █████░░██████ ░░████████ █████  █████     █████░░██████  █████     ██████ |
     // |░░░░░     ░░░░░  ░░░░░░   ░░░░░░░░ ░░░░░  ░░░░░     ░░░░░  ░░░░░░  ░░░░░     ░░░░░░  |
     // '-------------------------------------------------------------------------------------'
+
+    // Stage updater modifier
+    modifier onlyStageUpdater() {
+        if (msg.sender != _stageUpdater) revert OnlyStageUpdater();
+        _;
+    }
 
     // Bootnode manager modifier
     modifier onlyBootnodeManager() {
@@ -128,23 +133,31 @@ contract SwarmCoordinator is Ownable {
     // '--------------------------------------------------------------------------------------------------------------'
 
     constructor() Ownable(msg.sender) {
-        _stageStartBlock = block.number;
-        _bootnodeManager = msg.sender; // Initially set the owner as the bootnode manager
+        setStageUpdater(msg.sender);
+        setBootnodeManager(msg.sender);
         setJudge(msg.sender);
 
         emit BootnodeManagerUpdated(address(0), msg.sender);
     }
 
-    // .---------------------------------------------------------------.
-    // | ███████████                                      █████        |
-    // |░░███░░░░░███                                    ░░███         |
-    // | ░███    ░███   ██████  █████ ████ ████████    ███████   █████ |
-    // | ░██████████   ███░░███░░███ ░███ ░░███░░███  ███░░███  ███░░  |
-    // | ░███░░░░░███ ░███ ░███ ░███ ░███  ░███ ░███ ░███ ░███ ░░█████ |
-    // | ░███    ░███ ░███ ░███ ░███ ░███  ░███ ░███ ░███ ░███  ░░░░███|
-    // | █████   █████░░██████  ░░████████ ████ █████░░████████ ██████ |
-    // |░░░░░   ░░░░░  ░░░░░░    ░░░░░░░░ ░░░░ ░░░░░  ░░░░░░░░ ░░░░░░  |
-    // '---------------------------------------------------------------'
+    /**
+     * @dev Sets a new stage updater
+     * @param newUpdater The address of the new stage updater
+     * @notice Only callable by the contract owner
+     */
+    function setStageUpdater(address newUpdater) public onlyOwner {
+        address oldUpdater = _stageUpdater;
+        _stageUpdater = newUpdater;
+        emit StageUpdaterUpdated(oldUpdater, newUpdater);
+    }
+
+    /**
+     * @dev Returns the current stage updater
+     * @return The address of the current stage updater
+     */
+    function stageUpdater() external view returns (address) {
+        return _stageUpdater;
+    }
 
     /**
      * @dev Returns the current round number
@@ -160,16 +173,6 @@ contract SwarmCoordinator is Ownable {
      */
     function currentStage() public view returns (uint256) {
         return _currentStage;
-    }
-
-    /**
-     * @dev Sets the duration for a specific stage
-     * @param stage_ The stage number to set duration for
-     * @param stageDuration_ Duration in blocks for the stage
-     */
-    function setStageDuration(uint256 stage_, uint256 stageDuration_) public onlyOwner {
-        require(stage_ < _stageCount, StageOutOfBounds());
-        _stageDurations[stage_] = stageDuration_;
     }
 
     /**
@@ -189,14 +192,11 @@ contract SwarmCoordinator is Ownable {
     }
 
     /**
-     * @dev Updates the current stage and round if enough time has passed
-     * @return The current stage after any updates
+     * @dev Updates the current stage and round
+     * @return The current round and stage after any updates
+     * @notice Only callable by the stage updater
      */
-    function updateStageAndRound() public returns (uint256, uint256) {
-        // Check if enough time has passed for the current stage
-        uint256 stageIndex = _currentStage;
-        require(block.number >= _stageStartBlock + _stageDurations[stageIndex], StageDurationNotElapsed());
-
+    function updateStageAndRound() external onlyStageUpdater returns (uint256, uint256) {
         if (_currentStage + 1 >= _stageCount) {
             // If we're at the last stage, advance to the next round
             _currentRound++;
@@ -207,8 +207,6 @@ contract SwarmCoordinator is Ownable {
             _currentStage = _currentStage + 1;
         }
 
-        // Update the stage start block
-        _stageStartBlock = block.number;
         emit StageAdvanced(_currentRound, _currentStage);
 
         return (_currentRound, _currentStage);
@@ -229,18 +227,18 @@ contract SwarmCoordinator is Ownable {
      * @dev Registers a peer's ID and associates it with the sender's address
      * @param peerId The peer ID to register
      */
-    function registerPeer(bytes calldata peerId) external {
+    function registerPeer(string calldata peerId) external {
         address eoa = msg.sender;
 
         // Clear any existing peer ID mapping for this EOA
-        bytes32 oldPeerIdHash = keccak256(_eoaToPeerId[eoa]);
-        if (oldPeerIdHash != bytes32(0)) {
-            delete _peerIdToEoa[oldPeerIdHash];
+        string memory oldPeerId = _eoaToPeerId[eoa];
+        if (bytes(oldPeerId).length > 0) {
+            delete _peerIdToEoa[oldPeerId];
         }
 
         // Set new mappings
         _eoaToPeerId[eoa] = peerId;
-        _peerIdToEoa[keccak256(peerId)] = eoa;
+        _peerIdToEoa[peerId] = eoa;
 
         emit PeerRegistered(eoa, peerId);
     }
@@ -250,7 +248,7 @@ contract SwarmCoordinator is Ownable {
      * @param eoa The EOA address to look up
      * @return The peer ID associated with the EOA address
      */
-    function getPeerId(address eoa) external view returns (bytes memory) {
+    function getPeerId(address eoa) external view returns (string memory) {
         return _eoaToPeerId[eoa];
     }
 
@@ -270,7 +268,7 @@ contract SwarmCoordinator is Ownable {
      * @param newManager The address of the new bootnode manager
      * @notice Only callable by the contract owner
      */
-    function setBootnodeManager(address newManager) external onlyOwner {
+    function setBootnodeManager(address newManager) public onlyOwner {
         address oldManager = _bootnodeManager;
         _bootnodeManager = newManager;
         emit BootnodeManagerUpdated(oldManager, newManager);
@@ -462,8 +460,8 @@ contract SwarmCoordinator is Ownable {
      * @param peerId The peer ID to query
      * @return The total number of wins for the peer ID
      */
-    function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint256) {
-        address eoa = _peerIdToEoa[keccak256(peerId)];
+    function getTotalWinsByPeerId(string calldata peerId) external view returns (uint256) {
+        address eoa = _peerIdToEoa[peerId];
         return eoa == address(0) ? 0 : _totalWins[eoa];
     }
 
