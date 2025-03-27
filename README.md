@@ -164,7 +164,7 @@ anvil
 2. Keep this terminal running and open a new terminal to deploy the mock data:
 
 ```bash
-./script/DeployLocalSwarmCoordinatorData.sh
+forge script script/DeployLocalMockData.s.sol --rpc-url=http://localhost:8545 --broadcast
 ```
 
 This script will:
