@@ -105,13 +105,12 @@ Returns a slice of the leaderboard sorted by number of wins (descending). The `s
 
 #### Owner
 
-Manages stages and other managers.
+Manages contract configuration and roles.
 
 ```solidity
 function setStageCount(uint256 stageCount_)
 function setStageUpdater(address newUpdater)
 function setBootnodeManager(address newManager)
-function setJudge(address newJudge)
 ```
 
 #### Stage Updater
@@ -132,41 +131,54 @@ function removeBootnode(uint256 index)
 function clearBootnodes()
 ```
 
-#### Judge
-
-Submits winners. Can be a smart contract implementing custom consensus logic.
-
-```solidity
-function submitWinner(uint256 roundNumber, address[] calldata winners)
-function getRoundWinners(uint256 roundNumber) external view returns (address[] memory)
-function judge() external view returns (address)
-```
-
 ## Development
 
 ### Prerequisites
+
 - [foundry](https://book.getfoundry.sh/getting-started/installation)
 - [curl](https://curl.se/download.html)
 
 ### Testing
+
 Run the test suite:
+
 ```bash
 forge test
 ```
 
 Run with verbosity for more details:
+
 ```bash
 forge test -vvv
 ```
 
 ### Code Style
+
 - Use Solidity style guide
 - Run formatter before committing:
+
 ```bash
 forge fmt
 ```
 
+- Or set up a git hook to format pre-commit:
+  - Create a pre-commit hook file `.git/hooks/pre-commit` with this content:
+
+```bash
+#!/bin/bash
+
+# Format staged files using forge fmt
+git diff --cached |forge fmt
+
+# Add the formatted changes back to the index
+git add .
+
+# Proceed with commit
+exit 0
+```
+
 ### Contributing
+
 1. Fork the repository
 2. Create a feature branch
 3. Commit your changes
