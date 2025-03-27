@@ -185,7 +185,7 @@ exit 0
 4. Push to the branch
 5. Create a Pull Request
 
-### Deploy local mock data
+### Deploy locally with mock data
 
 One can set up a local environment for testing.
 
@@ -217,6 +217,27 @@ This script will:
 - Display contract address and leaderboard
 
 You can now interact with the contract at the address printed in the deployment output.
+
+### Deploy
+
+To deploy to a network (either testnet, mainnet, ..), you need to set up these environment variables in a file such as `.env`:
+
+```env
+ETH_RPC_URL=https://gensyn-testnet.g.alchemy.com/public
+ETH_PRIVATE_KEY=0xPRIVATEKEY
+```
+
+Load the environment file:
+
+```bash
+source .env
+```
+
+After loading the environment file, deploy it:
+
+```bash
+forge script script/DeploySwarmCoordinator.s.sol --rpc-url=$ETH_RPC_URL --private-key=$ETH_PRIVATE_KEY --broadcast
+```
 
 ### Generic framework info
 

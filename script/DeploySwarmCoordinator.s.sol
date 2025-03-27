@@ -11,12 +11,14 @@ contract DeploySwarmCoordinator is Script {
 
     function setUp() public {
         deployerPrivateKey = vm.envUint("ETH_PRIVATE_KEY");
-        console2.log("Deployer private key:", deployerPrivateKey);
     }
 
     function run() public {
         vm.startBroadcast(deployerPrivateKey);
         coordinator = new SwarmCoordinator();
+        coordinator.setStageCount(3);
         vm.stopBroadcast();
+
+        console2.log("SwarmCoordinator deployed at:", address(coordinator));
     }
 }
