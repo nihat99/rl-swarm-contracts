@@ -91,6 +91,7 @@ contract SwarmCoordinator is Ownable {
     error InvalidRoundNumber();
     error WinnerAlreadySubmitted();
     error OnlyStageUpdater();
+    error PeerIdAlreadyRegistered();
 
     // .-------------------------------------------------------------------------------------.
     // | ██████   ██████              █████  ███     ██████   ███                            |
@@ -230,11 +231,11 @@ contract SwarmCoordinator is Ownable {
     function registerPeer(string calldata peerId) external {
         address eoa = msg.sender;
 
-        // Clear any existing peer ID mapping for this EOA
-        string memory oldPeerId = _eoaToPeerId[eoa];
-        if (bytes(oldPeerId).length > 0) {
-            delete _peerIdToEoa[oldPeerId];
-        }
+        // Check if the peer ID is already registered
+        if (_peerIdToEoa[peerId] != address(0)) revert PeerIdAlreadyRegistered();
+
+        // Check if the EOA already has a peer ID
+        if (bytes(_eoaToPeerId[eoa]).length > 0) revert PeerIdAlreadyRegistered();
 
         // Set new mappings
         _eoaToPeerId[eoa] = peerId;
