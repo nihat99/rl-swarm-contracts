@@ -902,4 +902,215 @@ contract SwarmCoordinatorTest is Test {
         assertEq(topVoters[0], newVoter);
         assertEq(swarmCoordinator.getVoterVoteCount(newVoter), 2);
     }
+
+    function test_UniqueVoters_StartsAtZero() public view {
+        assertEq(swarmCoordinator.uniqueVoters(), 0);
+    }
+
+    function test_UniqueVoters_IncrementsForNewVoter() public {
+        string[] memory winners = new string[](1);
+        winners[0] = "QmWinner1";
+
+        // Register peer ID first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners[0]);
+
+        // First vote should increment unique voters
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners);
+        assertEq(swarmCoordinator.uniqueVoters(), 1);
+    }
+
+    function test_UniqueVoters_DoesNotIncrementForSameVoter() public {
+        string[] memory winners = new string[](1);
+        winners[0] = "QmWinner1";
+
+        // Register peer ID first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners[0]);
+
+        // First vote should increment unique voters
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners);
+        assertEq(swarmCoordinator.uniqueVoters(), 1);
+
+        // Advance to next round
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+
+        // Second vote from same voter should not increment
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(1, winners);
+        assertEq(swarmCoordinator.uniqueVoters(), 1);
+    }
+
+    function test_UniqueVoters_IncrementsForDifferentVoters() public {
+        string[] memory winners1 = new string[](1);
+        winners1[0] = "QmWinner1";
+
+        string[] memory winners2 = new string[](1);
+        winners2[0] = "QmWinner2";
+
+        // Register peer ID first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners1[0]);
+        vm.prank(_user2);
+        swarmCoordinator.registerPeer(winners2[0]);
+
+        // First vote should increment unique voters
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners1);
+        assertEq(swarmCoordinator.uniqueVoters(), 1);
+
+        // Second vote from different voter should increment
+        vm.prank(_user2);
+        swarmCoordinator.submitWinners(0, winners2);
+        assertEq(swarmCoordinator.uniqueVoters(), 2);
+    }
+
+    function test_UniqueVoters_DoesNotIncrementAcrossRounds() public {
+        string[] memory winners = new string[](1);
+        winners[0] = "QmWinner1";
+
+        // Register peer ID first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners[0]);
+
+        // Set stage count and stage updater
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.setStageUpdater(_stageUpdater);
+        vm.stopPrank();
+
+        // First vote should increment unique voters
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners);
+        assertEq(swarmCoordinator.uniqueVoters(), 1);
+
+        // Advance to next round
+        vm.prank(_stageUpdater);
+        swarmCoordinator.updateStageAndRound();
+
+        // Vote in next round should not increment
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(1, winners);
+        assertEq(swarmCoordinator.uniqueVoters(), 1);
+    }
+
+    function test_UniqueVotedPeers_StartsAtZero() public view {
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 0);
+    }
+
+    function test_UniqueVotedPeers_IncrementsForNewPeer() public {
+        string[] memory winners = new string[](1);
+        winners[0] = "QmWinner1";
+
+        // Register peer ID first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners[0]);
+
+        // First vote should increment unique voted peers
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
+    }
+
+    function test_UniqueVotedPeers_DoesNotIncrementForSamePeer() public {
+        string[] memory winners = new string[](1);
+        winners[0] = "QmWinner1";
+
+        // Register peer ID first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners[0]);
+
+        // First vote should increment unique voted peers
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
+
+        // Second vote for same peer should not increment
+        vm.prank(_user2);
+        swarmCoordinator.submitWinners(0, winners);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
+    }
+
+    function test_UniqueVotedPeers_IncrementsForDifferentPeers() public {
+        string[] memory winners1 = new string[](1);
+        winners1[0] = "QmWinner1";
+        string[] memory winners2 = new string[](1);
+        winners2[0] = "QmWinner2";
+
+        // Register peer IDs first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners1[0]);
+        vm.prank(_user2);
+        swarmCoordinator.registerPeer(winners2[0]);
+
+        // First vote should increment unique voted peers
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners1);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
+
+        // Second vote for different peer should increment
+        vm.prank(_user2);
+        swarmCoordinator.submitWinners(0, winners2);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
+    }
+
+    function test_UniqueVotedPeers_DoesNotIncrementAcrossRounds() public {
+        string[] memory winners = new string[](1);
+        winners[0] = "QmWinner1";
+
+        // Register peer ID first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners[0]);
+
+        // First vote should increment unique voted peers
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
+
+        // Advance to next round
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+
+        // Vote in next round should not increment since peer was already voted on
+        vm.prank(_user2);
+        swarmCoordinator.submitWinners(1, winners);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
+    }
+
+    function test_UniqueVotedPeers_TracksUniquenessAcrossRounds() public {
+        string[] memory winners1 = new string[](1);
+        winners1[0] = "QmWinner1";
+        string[] memory winners2 = new string[](1);
+        winners2[0] = "QmWinner2";
+
+        // Register peer IDs first
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(winners1[0]);
+        vm.prank(_user2);
+        swarmCoordinator.registerPeer(winners2[0]);
+
+        // First vote should increment unique voted peers
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners1);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
+
+        // Advance to next round
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+
+        // Vote for a different peer in next round should increment
+        vm.prank(_user2);
+        swarmCoordinator.submitWinners(1, winners2);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
+
+        // Vote for first peer again in next round should not increment
+        vm.prank(_owner);
+        swarmCoordinator.updateStageAndRound();
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(2, winners1);
+        assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
+    }
 }

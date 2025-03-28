@@ -16,6 +16,8 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 - Peer registration and tracking
 - Bootnode management
 - Winner submission and reward tracking
+- Unique voter tracking across rounds
+- Unique voted peer tracking across rounds
 
 ## Contract Architecture
 
@@ -39,6 +41,16 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
    - Designated winner manager can submit winners for each round
    - Tracks accrued rewards per participant
    - Prevents duplicate winner submissions
+
+5. **Voter Tracking**
+   - Tracks unique voters across all rounds
+   - Counts each address only once, regardless of how many times they vote
+   - Provides total count of unique participants
+
+6. **Voted Peer Tracking**
+   - Tracks unique peers that have received votes
+   - Counts each peer only once, regardless of how many times they are voted for
+   - Provides total count of unique peers that have been voted on
 
 ## Roles
 
@@ -99,7 +111,24 @@ function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint
 function leaderboard(uint256 start, uint256 end) external view returns (address[] memory)
 ```
 
-Returns a slice of the leaderboard sorted by number of wins (descending). The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end). The leaderboard tracks up to 100 top winners.
+Returns a slice of the leaderboard sorted by number of wins (descending). The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end). 
+The leaderboard tracks up to 100 top winners.
+
+6. Check unique voter count:
+
+```solidity
+function uniqueVoters() external view returns (uint256)
+```
+
+Returns the total number of unique addresses that have participated in voting across all rounds. Each address is counted only once, regardless of how many times they have voted.
+
+7. Check unique voted peer count:
+
+```solidity
+function uniqueVotedPeers() external view returns (uint256)
+```
+
+Returns the total number of unique peer IDs that have received votes across all rounds. Each peer is counted only once, regardless of how many times they have been voted for.
 
 ### For Administrators
 
