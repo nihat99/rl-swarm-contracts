@@ -193,7 +193,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Try to update to second peer - should fail
         vm.prank(user);
-        vm.expectRevert(SwarmCoordinator.PeerIdAlreadyRegistered.selector);
+        vm.expectRevert(SwarmCoordinator.EoaAlreadyHasPeerId.selector);
         swarmCoordinator.registerPeer(peerId2);
 
         // Verify peer ID was not changed

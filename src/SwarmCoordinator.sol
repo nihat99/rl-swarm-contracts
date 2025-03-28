@@ -101,6 +101,7 @@ contract SwarmCoordinator is Ownable {
     error WinnerAlreadyVoted();
     error OnlyStageUpdater();
     error PeerIdAlreadyRegistered();
+    error EoaAlreadyHasPeerId();
     error InvalidPeerId();
 
     // .-------------------------------------------------------------------------------------.
@@ -236,7 +237,7 @@ contract SwarmCoordinator is Ownable {
         if (_peerIdToEoa[peerId] != address(0)) revert PeerIdAlreadyRegistered();
 
         // Check if the EOA already has a peer ID
-        if (bytes(_eoaToPeerId[eoa]).length > 0) revert PeerIdAlreadyRegistered();
+        if (bytes(_eoaToPeerId[eoa]).length > 0) revert EoaAlreadyHasPeerId();
 
         // Set new mappings
         _eoaToPeerId[eoa] = peerId;
