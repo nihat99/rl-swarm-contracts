@@ -50,6 +50,12 @@ contract SwarmCoordinator is Ownable {
     mapping(address => uint256) private _voterVoteCounts;
     // Array of top voters (sorted by number of votes)
     address[] private _topVoters;
+    // Number of unique voters who have participated
+    uint256 private _uniqueVoters;
+    // Number of unique peers that have been voted on
+    uint256 private _uniqueVotedPeers;
+    // Maps peer ID to whether it has been voted on in any round
+    mapping(string => bool) private _hasBeenVotedOn;
     // Bootnode management state
     // Address authorized to manage bootnodes
     address private _bootnodeManager;
@@ -375,6 +381,11 @@ contract SwarmCoordinator is Ownable {
         // Check if sender has already voted
         if (_roundVotes[roundNumber][msg.sender].length > 0) revert WinnerAlreadyVoted();
 
+        // If this is the first time this address has voted, increment unique voters
+        if (_voterVoteCounts[msg.sender] == 0) {
+            _uniqueVoters++;
+        }
+
         // Validate all peer IDs exist
         for (uint256 i = 0; i < winners.length; i++) {
             if (_peerIdToEoa[winners[i]] == address(0)) revert InvalidPeerId();
@@ -383,9 +394,14 @@ contract SwarmCoordinator is Ownable {
         // Record the vote
         _roundVotes[roundNumber][msg.sender] = winners;
 
-        // Update vote counts
+        // Update vote counts and track unique voted peers
         for (uint256 i = 0; i < winners.length; i++) {
             _roundVoteCounts[roundNumber][winners[i]]++;
+            // If this peer has never been voted on before, increment unique voted peers
+            if (!_hasBeenVotedOn[winners[i]]) {
+                _hasBeenVotedOn[winners[i]] = true;
+                _uniqueVotedPeers++;
+            }
         }
 
         // Update how many times each voter has voted
@@ -616,5 +632,21 @@ contract SwarmCoordinator is Ownable {
         }
 
         return (peerIds, wins);
+    }
+
+    /**
+     * @dev Gets the total number of unique voters who have participated
+     * @return The number of unique voters
+     */
+    function uniqueVoters() external view returns (uint256) {
+        return _uniqueVoters;
+    }
+
+    /**
+     * @dev Gets the total number of unique peers that have been voted on
+     * @return The number of unique peers that have received votes
+     */
+    function uniqueVotedPeers() external view returns (uint256) {
+        return _uniqueVotedPeers;
     }
 }
