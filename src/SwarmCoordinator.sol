@@ -134,8 +134,6 @@ contract SwarmCoordinator is Ownable {
     constructor() Ownable(msg.sender) {
         setStageUpdater(msg.sender);
         setBootnodeManager(msg.sender);
-
-        emit BootnodeManagerUpdated(address(0), msg.sender);
     }
 
     /**
