@@ -96,10 +96,16 @@ function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint
 5. View the leaderboard:
 
 ```solidity
-function leaderboard(uint256 start, uint256 end) external view returns (address[] memory)
+function winnerLeaderboard(uint256 start, uint256 end) external view returns (string[] memory peerIds, uint256[] memory wins)
+function voterLeaderboard(uint256 start, uint256 end) external view returns (address[] memory voters, uint256[] memory voteCounts)
 ```
 
-Returns a slice of the leaderboard sorted by number of wins (descending). The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end). The leaderboard tracks up to 100 top winners.
+Returns slices of the leaderboards:
+
+- `winnerLeaderboard`: Returns peer IDs and their win counts, sorted by number of wins (descending)
+- `voterLeaderboard`: Returns voter addresses and their vote counts, sorted by number of votes (descending)
+
+Both leaderboards track up to 100 top entries. The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end).
 
 ### For Administrators
 
