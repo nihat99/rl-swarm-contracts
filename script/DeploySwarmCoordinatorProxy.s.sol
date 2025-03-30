@@ -30,9 +30,11 @@ contract DeploySwarmCoordinatorProxy is Script {
         proxy = new ERC1967Proxy(address(swarmCoordinator_implementation), initializeCallData);
 
         swarmCoordinator = SwarmCoordinator(address(proxy));
+        swarmCoordinator.setStageCount(3);
+
         vm.stopBroadcast();
 
-        console2.log("SwarmCoordinator deployed at:", address(swarmCoordinator));
+        console2.log("SwarmCoordinator proxy deployed at:", address(swarmCoordinator));
         console2.log("SwarmCoordinator implementation deployed at:", address(swarmCoordinator_implementation));
     }
 
