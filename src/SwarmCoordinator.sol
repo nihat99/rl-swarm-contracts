@@ -32,8 +32,6 @@ contract SwarmCoordinator {
     mapping(string => address) _peerIdToEoa;
 
     // Winner management state
-    // Maps round number to winner peer IDs
-    mapping(uint256 => string[]) private _roundWinners;
     // Maps peer ID to total number of wins
     mapping(string => uint256) private _totalWins;
     // Array of top winners (sorted by wins)
@@ -589,15 +587,6 @@ contract SwarmCoordinator {
         }
 
         return (voters, voteCounts);
-    }
-
-    /**
-     * @dev Gets the winners for a specific round
-     * @param roundNumber The round number to query
-     * @return Array of winner peer IDs for that round (empty array if no winners set)
-     */
-    function getRoundWinners(uint256 roundNumber) external view returns (string[] memory) {
-        return _roundWinners[roundNumber];
     }
 
     /**
