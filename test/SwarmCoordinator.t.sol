@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8;
 
 import {Test, console} from "forge-std/Test.sol";
 import {SwarmCoordinator} from "../src/SwarmCoordinator.sol";
@@ -10,7 +10,7 @@ contract SwarmCoordinatorTest is Test {
     address _owner = makeAddr("owner");
     address _bootnodeManager = makeAddr("bootnodeManager");
     address _user = makeAddr("user");
-    address _stageUpdater = makeAddr("stageUpdater");
+    address _stageManager = makeAddr("stageManager");
     address _user1 = makeAddr("voter1");
     address _user2 = makeAddr("voter2");
 
@@ -18,11 +18,6 @@ contract SwarmCoordinatorTest is Test {
         vm.startPrank(_owner);
         swarmCoordinator = new SwarmCoordinator();
         vm.stopPrank();
-    }
-
-    function test_SwarmCoordinator_IsCorrectlyDeployed() public view {
-        assertEq(swarmCoordinator.owner(), address(_owner));
-        assertEq(swarmCoordinator.stageUpdater(), address(_owner));
     }
 
     function test_Owner_CanSetStageCount_Successfully(uint256 stageCount) public {
@@ -41,88 +36,40 @@ contract SwarmCoordinatorTest is Test {
         assertEq(currentRound, 0);
     }
 
-    function test_StageUpdater_CanAdvanceStage() public {
-        uint256 stageCount_ = 2;
-
-        vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(stageCount_);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
-        vm.stopPrank();
+    function test_Owner_Can_AdvanceStage() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
 
         uint256 startingStage = uint256(swarmCoordinator.currentStage());
 
-        vm.prank(_stageUpdater);
+        vm.prank(_owner);
         (, uint256 newStage) = swarmCoordinator.updateStageAndRound();
 
         assertEq(newStage, startingStage + 1);
     }
 
-    function test_NonStageUpdater_CannotAdvanceStage() public {
-        uint256 stageCount_ = 2;
-
-        vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(stageCount_);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
-        vm.stopPrank();
-
+    function test_NonOwner_Cannot_AdvanceStage() public {
         vm.prank(_user);
-        vm.expectRevert(SwarmCoordinator.OnlyStageUpdater.selector);
+        vm.expectRevert(SwarmCoordinator.OnlyStageManager.selector);
         swarmCoordinator.updateStageAndRound();
     }
 
-    function test_StageUpdater_CanAdvanceRound() public {
+    function test_StageManager_Can_AdvanceRound() public {
         uint256 stageCount_ = 2;
 
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(stageCount_);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
         vm.stopPrank();
 
         uint256 startingRound = uint256(swarmCoordinator.currentRound());
 
         // Advance through all stages to trigger round advancement
+        vm.startPrank(_stageManager);
         for (uint256 i = 0; i < stageCount_; i++) {
-            vm.prank(_stageUpdater);
             swarmCoordinator.updateStageAndRound();
         }
-
-        uint256 newRound = uint256(swarmCoordinator.currentRound());
-        uint256 newStage = uint256(swarmCoordinator.currentStage());
-        assertEq(newRound, startingRound + 1);
-        assertEq(newStage, 0);
-    }
-
-    function test_Owner_CanSet_StageUpdater() public {
-        vm.startPrank(_owner);
-        vm.expectEmit(true, true, false, false);
-        emit SwarmCoordinator.StageUpdaterUpdated(_owner, _stageUpdater);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
         vm.stopPrank();
-
-        assertEq(swarmCoordinator.stageUpdater(), _stageUpdater);
-    }
-
-    function test_NonOwner_CannotSet_StageUpdater() public {
-        vm.prank(_user);
-        vm.expectRevert();
-        swarmCoordinator.setStageUpdater(_stageUpdater);
-    }
-
-    function test_Anyone_CanAdvanceRound_IfEnoughTimeHasPassed() public {
-        uint256 stageCount_ = 3;
-
-        vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(stageCount_);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
-        vm.stopPrank();
-
-        uint256 startingRound = uint256(swarmCoordinator.currentRound());
-
-        // Advance through all stages to trigger round advancement
-        for (uint256 i = 0; i < stageCount_; i++) {
-            vm.prank(_stageUpdater);
-            swarmCoordinator.updateStageAndRound();
-        }
 
         uint256 newRound = uint256(swarmCoordinator.currentRound());
         uint256 newStage = uint256(swarmCoordinator.currentStage());
@@ -254,26 +201,6 @@ contract SwarmCoordinatorTest is Test {
     }
 
     // Bootnode tests
-    function test_SwarmCoordinatorDeployment_SetsBootnodeManager_ToOwner() public view {
-        assertEq(swarmCoordinator.bootnodeManager(), _owner);
-    }
-
-    function test_Owner_CanSet_BootnodeManager() public {
-        vm.startPrank(_owner);
-        vm.expectEmit(true, true, false, false);
-        emit SwarmCoordinator.BootnodeManagerUpdated(_owner, _bootnodeManager);
-        swarmCoordinator.setBootnodeManager(_bootnodeManager);
-        vm.stopPrank();
-
-        assertEq(swarmCoordinator.bootnodeManager(), _bootnodeManager);
-    }
-
-    function test_NonOwner_CannotSet_BootnodeManager() public {
-        vm.prank(_user);
-        vm.expectRevert();
-        swarmCoordinator.setBootnodeManager(_bootnodeManager);
-    }
-
     function test_BootnodeManager_CanAdd_Bootnodes() public {
         string[] memory newBootnodes = new string[](2);
         newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
@@ -537,10 +464,10 @@ contract SwarmCoordinatorTest is Test {
         // Forward to next round
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
         vm.stopPrank();
 
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 1
@@ -571,7 +498,7 @@ contract SwarmCoordinatorTest is Test {
         // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
         vm.stopPrank();
 
         // Submit winners for round 0
@@ -579,7 +506,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(0, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 1
@@ -587,7 +514,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(1, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
@@ -627,7 +554,7 @@ contract SwarmCoordinatorTest is Test {
         // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
         vm.stopPrank();
 
         // Submit winners for round 0
@@ -635,7 +562,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(0, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 1
@@ -643,7 +570,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(1, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
@@ -683,7 +610,7 @@ contract SwarmCoordinatorTest is Test {
         // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
         vm.stopPrank();
 
         // Submit winners for round 0
@@ -691,7 +618,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(0, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 1
@@ -699,7 +626,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(1, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
@@ -739,7 +666,7 @@ contract SwarmCoordinatorTest is Test {
         // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
         vm.stopPrank();
 
         // Submit winners for round 0
@@ -747,7 +674,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(0, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 1
@@ -755,7 +682,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(1, winners1);
 
         // Forward to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
@@ -979,7 +906,7 @@ contract SwarmCoordinatorTest is Test {
         // Set stage count and stage updater
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
-        swarmCoordinator.setStageUpdater(_stageUpdater);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
         vm.stopPrank();
 
         // First vote should increment unique voters
@@ -988,7 +915,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVoters(), 1);
 
         // Advance to next round
-        vm.prank(_stageUpdater);
+        vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Vote in next round should not increment

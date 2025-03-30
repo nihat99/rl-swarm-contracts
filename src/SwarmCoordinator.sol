@@ -8,7 +8,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * @dev Manages coordination of a swarm network including round/stage progression,
  * peer registration, bootnode management, and winner selection.
  */
-contract SwarmCoordinator is Ownable {
+contract SwarmCoordinator {
     // .---------------------------------------------------.
     // |  █████████   █████               █████            |
     // | ███░░░░░███ ░░███               ░░███             |
@@ -26,8 +26,6 @@ contract SwarmCoordinator is Ownable {
     uint256 _currentStage = 0;
     // Total number of stages in a round
     uint256 _stageCount = 0;
-    // Address authorized to update stages and rounds
-    address private _stageUpdater;
     // Maps EOA addresses to their corresponding peer IDs
     mapping(address => string) _eoaToPeerId;
     // Maps peer IDs to their corresponding EOA addresses
@@ -56,11 +54,23 @@ contract SwarmCoordinator is Ownable {
     uint256 private _uniqueVotedPeers;
     // Maps peer ID to whether it has been voted on in any round
     mapping(string => bool) private _hasBeenVotedOn;
-    // Bootnode management state
-    // Address authorized to manage bootnodes
-    address private _bootnodeManager;
     // List of bootnode addresses/endpoints
     string[] private _bootnodes;
+
+    //  ███████████            ████
+    // ░░███░░░░░███          ░░███
+    //  ░███    ░███   ██████  ░███   ██████   █████
+    //  ░██████████   ███░░███ ░███  ███░░███ ███░░
+    //  ░███░░░░░███ ░███ ░███ ░███ ░███████ ░░█████
+    //  ░███    ░███ ░███ ░███ ░███ ░███░░░   ░░░░███
+    //  █████   █████░░██████  █████░░██████  ██████
+    // ░░░░░   ░░░░░  ░░░░░░  ░░░░░  ░░░░░░  ░░░░░░
+
+    mapping(bytes32 => mapping(address => bool)) private _roleToAddress;
+
+    bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
+    bytes32 public constant BOOTNODE_MANAGER_ROLE = keccak256("BOOTNODE_MANAGER_ROLE");
+    bytes32 public constant STAGE_MANAGER_ROLE = keccak256("STAGE_MANAGER_ROLE");
 
     // .-------------------------------------------------------------.
     // | ██████████                                  █████           |
@@ -76,12 +86,12 @@ contract SwarmCoordinator is Ownable {
     event StageAdvanced(uint256 indexed roundNumber, uint256 newStage);
     event RoundAdvanced(uint256 indexed newRoundNumber);
     event PeerRegistered(address indexed eoa, string peerId);
-    event BootnodeManagerUpdated(address indexed previousManager, address indexed newManager);
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
     event WinnerSubmitted(address indexed voter, uint256 indexed roundNumber, string[] winners);
-    event StageUpdaterUpdated(address indexed previousUpdater, address indexed newUpdater);
+    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
+    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -95,14 +105,15 @@ contract SwarmCoordinator is Ownable {
     // '----------------------------------------------------------'
 
     error StageOutOfBounds();
-    error OnlyBootnodeManager();
     error InvalidBootnodeIndex();
     error InvalidRoundNumber();
     error WinnerAlreadyVoted();
-    error OnlyStageUpdater();
     error PeerIdAlreadyRegistered();
     error EoaAlreadyHasPeerId();
     error InvalidPeerId();
+    error OnlyOwner();
+    error OnlyBootnodeManager();
+    error OnlyStageManager();
 
     // .-------------------------------------------------------------------------------------.
     // | ██████   ██████              █████  ███     ██████   ███                            |
@@ -115,15 +126,21 @@ contract SwarmCoordinator is Ownable {
     // |░░░░░     ░░░░░  ░░░░░░   ░░░░░░░░ ░░░░░  ░░░░░     ░░░░░  ░░░░░░  ░░░░░     ░░░░░░  |
     // '-------------------------------------------------------------------------------------'
 
-    // Stage updater modifier
-    modifier onlyStageUpdater() {
-        if (msg.sender != _stageUpdater) revert OnlyStageUpdater();
+    // Owner modifier
+    modifier onlyOwner() {
+        require(_roleToAddress[OWNER_ROLE][msg.sender], OnlyOwner());
+        _;
+    }
+
+    // Stage manager modifier
+    modifier onlyStageManager() {
+        require(_roleToAddress[STAGE_MANAGER_ROLE][msg.sender], OnlyStageManager());
         _;
     }
 
     // Bootnode manager modifier
     modifier onlyBootnodeManager() {
-        if (msg.sender != _bootnodeManager) revert OnlyBootnodeManager();
+        require(_roleToAddress[BOOTNODE_MANAGER_ROLE][msg.sender], OnlyBootnodeManager());
         _;
     }
 
@@ -138,28 +155,51 @@ contract SwarmCoordinator is Ownable {
     // |  ░░░░░░░░░   ░░░░░░  ░░░░ ░░░░░ ░░░░░░     ░░░░░  ░░░░░       ░░░░░░░░  ░░░░░░     ░░░░░   ░░░░░░  ░░░░░     |
     // '--------------------------------------------------------------------------------------------------------------'
 
-    constructor() Ownable(msg.sender) {
-        setStageUpdater(msg.sender);
-        setBootnodeManager(msg.sender);
+    constructor() {
+        _grantRole(OWNER_ROLE, msg.sender);
+        _grantRole(STAGE_MANAGER_ROLE, msg.sender);
+        _grantRole(BOOTNODE_MANAGER_ROLE, msg.sender);
     }
 
     /**
-     * @dev Sets a new stage updater
-     * @param newUpdater The address of the new stage updater
+     * @dev Grants a role to an account
+     * @param role The role to grant
+     * @param account The address of the account to grant the role to
+     */
+    function _grantRole(bytes32 role, address account) internal {
+        _roleToAddress[role][account] = true;
+        emit RoleGranted(role, account, msg.sender);
+    }
+
+    /**
+     * @dev Grants a role to an account
+     * @param role The role to grant
+     * @param account The address of the account to grant the role to
      * @notice Only callable by the contract owner
      */
-    function setStageUpdater(address newUpdater) public onlyOwner {
-        address oldUpdater = _stageUpdater;
-        _stageUpdater = newUpdater;
-        emit StageUpdaterUpdated(oldUpdater, newUpdater);
+    function grantRole(bytes32 role, address account) public onlyOwner {
+        _grantRole(role, account);
     }
 
     /**
-     * @dev Returns the current stage updater
-     * @return The address of the current stage updater
+     * @dev Removes a role from an account
+     * @param role The role to revoke
+     * @param account The address of the account to revoke the role from
+     * @notice Only callable by the contract owner
      */
-    function stageUpdater() external view returns (address) {
-        return _stageUpdater;
+    function revokeRole(bytes32 role, address account) public onlyOwner {
+        _roleToAddress[role][account] = false;
+        emit RoleRevoked(role, account, msg.sender);
+    }
+
+    /**
+     * @dev Checks if an account has a role
+     * @param role The role to check
+     * @param account The address of the account to check
+     * @return True if the account has the role, false otherwise
+     */
+    function hasRole(bytes32 role, address account) public view returns (bool) {
+        return _roleToAddress[role][account];
     }
 
     /**
@@ -197,9 +237,9 @@ contract SwarmCoordinator is Ownable {
     /**
      * @dev Updates the current stage and round
      * @return The current round and stage after any updates
-     * @notice Only callable by the stage updater
+     * @notice Only callable by the stage manager
      */
-    function updateStageAndRound() external onlyStageUpdater returns (uint256, uint256) {
+    function updateStageAndRound() external onlyStageManager returns (uint256, uint256) {
         if (_currentStage + 1 >= _stageCount) {
             // If we're at the last stage, advance to the next round
             _currentRound++;
@@ -282,25 +322,6 @@ contract SwarmCoordinator is Ownable {
     // | ███████████ ░░██████ ░░██████   ░░█████  ████ █████░░██████ ░░████████░░██████  ██████ |
     // |░░░░░░░░░░░   ░░░░░░   ░░░░░░     ░░░░░  ░░░░ ░░░░░  ░░░░░░   ░░░░░░░░  ░░░░░░  ░░░░░░  |
     // '----------------------------------------------------------------------------------------'
-
-    /**
-     * @dev Sets a new bootnode manager
-     * @param newManager The address of the new bootnode manager
-     * @notice Only callable by the contract owner
-     */
-    function setBootnodeManager(address newManager) public onlyOwner {
-        address oldManager = _bootnodeManager;
-        _bootnodeManager = newManager;
-        emit BootnodeManagerUpdated(oldManager, newManager);
-    }
-
-    /**
-     * @dev Returns the current bootnode manager
-     * @return The address of the current bootnode manager
-     */
-    function bootnodeManager() external view returns (address) {
-        return _bootnodeManager;
-    }
 
     /**
      * @dev Adds multiple bootnodes to the list

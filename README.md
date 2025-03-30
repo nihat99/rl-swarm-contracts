@@ -147,7 +147,6 @@ function setStageCount(uint256 stageCount_)
 function setStageUpdater(address newUpdater)
 function setBootnodeManager(address newManager)
 ```
-
 #### Stage Updater
 
 Advances stages and rounds.
@@ -313,3 +312,4 @@ Once that's done you can use either:
 
 - [Live Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server)
 - [Coverage Gutters](https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters)
+
