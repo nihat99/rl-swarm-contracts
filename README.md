@@ -300,7 +300,10 @@ For more information about the development environment:
 
 ### How did you generate the ascii sections in the source code?
 
-I used https://www.asciiart.eu/text-to-ascii-art with the DOS Rebel font.
+I used https://www.asciiart.eu/text-to-ascii-art with:
+
+- font DOS Rebel
+- border simple
 
 ### How do I generate a code coverage report?
 
