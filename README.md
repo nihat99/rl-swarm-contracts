@@ -58,11 +58,11 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 1. **Owner**
    - Can set stage count
    - Can assign bootnode manager role
-   - Can set judge
    - Can set stage updater
+   - Can grant and revoke any role
    - Initially deployed contract owner
 
-2. **Stage Updater**
+2. **Stage Manager**
    - Can advance stages and rounds
    - Initially set to contract owner
 
@@ -71,42 +71,30 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
    - Can clear all bootnodes
    - Initially set to contract owner
 
-4. **Judge**
-   - Single address authorized to submit winners for completed rounds
-   - Can be a smart contract implementing custom consensus logic
-   - Initially set to contract owner
-
 ## Interacting with the Contract
 
 ### For Participants
 
-1. Register your peer:
+#### Register your peer
 
 ```solidity
 function registerPeer(bytes calldata peerId) external
 ```
 
-2. Check your accrued rewards:
-
-```solidity
-function getAccruedRewards(address account) external view returns (uint256)
-```
-
-3. View current round and stage:
+#### View current round and stage
 
 ```solidity
 function currentRound() external view returns (uint256)
 function currentStage() external view returns (uint256)
 ```
 
-4. Check total wins:
+#### Check total wins
 
 ```solidity
 function getTotalWins(address account) external view returns (uint256)
-function getTotalWinsByPeerId(bytes calldata peerId) external view returns (uint256)
 ```
 
-5. View the leaderboard:
+#### View the leaderboard
 
 ```solidity
 function winnerLeaderboard(uint256 start, uint256 end) external view returns (string[] memory peerIds, uint256[] memory wins)
@@ -120,7 +108,7 @@ Returns slices of the leaderboards:
 
 Both leaderboards track up to 100 top entries. The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end).
 
-6. Check unique voter count:
+#### Check unique voter count
 
 ```solidity
 function uniqueVoters() external view returns (uint256)
@@ -128,13 +116,36 @@ function uniqueVoters() external view returns (uint256)
 
 Returns the total number of unique addresses that have participated in voting across all rounds. Each address is counted only once, regardless of how many times they have voted.
 
-7. Check unique voted peer count:
+#### Check unique voted peer count
 
 ```solidity
 function uniqueVotedPeers() external view returns (uint256)
 ```
 
 Returns the total number of unique peer IDs that have received votes across all rounds. Each peer is counted only once, regardless of how many times they have been voted for.
+
+#### Get peer and EOA mappings
+
+```solidity
+function getPeerId(address[] calldata eoas) external view returns (string[] memory)
+function getEoa(string[] calldata peerIds) external view returns (address[] memory)
+```
+
+Get peer IDs for multiple EOAs or EOAs for multiple peer IDs.
+
+#### Get voting information
+
+```solidity
+function getVoterVoteCount(address voter) external view returns (uint256)
+function getVoterVotes(uint256 roundNumber, address voter) external view returns (string[] memory)
+function getPeerVoteCount(uint256 roundNumber, string calldata peerId) external view returns (uint256)
+```
+
+Get detailed voting information including:
+
+- Number of times a voter has voted
+- Votes cast by a specific voter in a round
+- Number of votes received by a peer in a round
 
 ### For Administrators
 
@@ -144,10 +155,11 @@ Manages contract configuration and roles.
 
 ```solidity
 function setStageCount(uint256 stageCount_)
-function setStageUpdater(address newUpdater)
-function setBootnodeManager(address newManager)
+function grantRole(bytes32 role, address account)
+function revokeRole(bytes32 role, address account)
 ```
-#### Stage Updater
+
+#### Stage Manager
 
 Advances stages and rounds.
 
@@ -163,6 +175,7 @@ Manages bootnode list.
 function addBootnodes(string[] calldata newBootnodes)
 function removeBootnode(uint256 index)
 function clearBootnodes()
+function getBootnodesCount() external view returns (uint256)
 ```
 
 ## Development
@@ -315,4 +328,3 @@ Once that's done you can use either:
 
 - [Live Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server)
 - [Coverage Gutters](https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters)
-
