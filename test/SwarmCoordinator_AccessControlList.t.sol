@@ -22,7 +22,7 @@ contract SwarmCoordinatorPermissionsTest is Test {
         assertEq(swarmCoordinator.hasRole(swarmCoordinator.OWNER_ROLE(), _newAccount), false);
         swarmCoordinator.grantRole(swarmCoordinator.OWNER_ROLE(), _newAccount);
         assertEq(swarmCoordinator.hasRole(swarmCoordinator.OWNER_ROLE(), _newAccount), true);
-        
+
         vm.stopPrank();
     }
 
@@ -31,20 +31,16 @@ contract SwarmCoordinatorPermissionsTest is Test {
 
         swarmCoordinator.grantRole(swarmCoordinator.OWNER_ROLE(), _newAccount);
         assertEq(swarmCoordinator.hasRole(swarmCoordinator.OWNER_ROLE(), _newAccount), true);
-        
+
         swarmCoordinator.revokeRole(swarmCoordinator.OWNER_ROLE(), _newAccount);
         assertEq(swarmCoordinator.hasRole(swarmCoordinator.OWNER_ROLE(), _newAccount), false);
-        
+
         vm.stopPrank();
     }
 
     function test_NonOwner_CannotAdd_Owners() public {
         address _nonOwner = makeAddr("nonOwner");
         address _newOwner = makeAddr("newOwner");
-
-        console.logBytes32(swarmCoordinator.OWNER_ROLE());
-        console.log(_newOwner);
-        console.log(_newAccount);
 
         vm.startPrank(_nonOwner);
         bytes32 ownerRole = swarmCoordinator.OWNER_ROLE();
@@ -80,6 +76,4 @@ contract SwarmCoordinatorPermissionsTest is Test {
         assertEq(swarmCoordinator.hasRole(swarmCoordinator.BOOTNODE_MANAGER_ROLE(), _newAccount), true);
         vm.stopPrank();
     }
-
-    function 
 }
