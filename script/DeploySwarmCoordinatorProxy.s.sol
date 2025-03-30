@@ -51,7 +51,7 @@ contract DeploySwarmCoordinatorProxy is Script {
 
         vm.stopBroadcast();
 
-        console2.log("SwarmCoordinator upgraded at:", address(swarmCoordinator));
+        console2.log("SwarmCoordinator upgraded at:", proxyAddress);
         console2.log("SwarmCoordinator implementation deployed at:", address(swarmCoordinator_implementation));
     }
 }
