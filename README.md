@@ -147,7 +147,6 @@ function setStageCount(uint256 stageCount_)
 function setStageUpdater(address newUpdater)
 function setBootnodeManager(address newManager)
 ```
-
 #### Stage Updater
 
 Advances stages and rounds.
@@ -301,7 +300,10 @@ For more information about the development environment:
 
 ### How did you generate the ascii sections in the source code?
 
-I used https://www.asciiart.eu/text-to-ascii-art with the DOS Rebel font.
+I used https://www.asciiart.eu/text-to-ascii-art with:
+
+- font DOS Rebel
+- border simple
 
 ### How do I generate a code coverage report?
 
@@ -313,3 +315,4 @@ Once that's done you can use either:
 
 - [Live Preview](https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server)
 - [Coverage Gutters](https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters)
+
