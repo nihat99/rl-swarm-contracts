@@ -13,6 +13,7 @@ contract SwarmCoordinatorPermissionsTest is Test {
     function setUp() public {
         vm.startPrank(_owner);
         swarmCoordinator = new SwarmCoordinator();
+        swarmCoordinator.initialize(_owner);
         vm.stopPrank();
     }
 

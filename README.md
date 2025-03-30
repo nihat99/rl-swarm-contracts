@@ -265,7 +265,7 @@ This script will:
 
 You can now interact with the contract at the address printed in the deployment output.
 
-### Deploy
+## Deploy
 
 To deploy to a network (either testnet, mainnet, ..), you need to set up these environment variables in a file such as `.env`:
 
@@ -280,26 +280,62 @@ Load the environment file:
 source .env
 ```
 
-Alternatively, an anvil (local deployment) specific environment file is already in the repo, load it with:
+After loading the environment file continue to deployment.
+
+### Proxy
+
+This contract uses an UUPSUpgradeable pattern. Thus, a proxy and the implementation need to be deployed an verified.
+
+#### Deploy initial proxy
 
 ```bash
-source .env.anvil
+forge script script/DeploySwarmCoordinatorProxy.s.sol --slow --rpc-url=$ETH_RPC_URL --private-key=$ETH_PRIVATE_KEY --broadcast
 ```
 
-After loading the environment file, deploy it:
+This deploys a contract implementation, the proxy and initializes the proxy.
 
-```bash
-forge script script/DeploySwarmCoordinator.s.sol --slow --rpc-url=$ETH_RPC_URL --private-key=$ETH_PRIVATE_KEY --broadcast
-```
-
-Verify the contract on blockscout:
+Verify the proxy on Blockscout:
 
 ```bash
 forge verify-contract \
   --rpc-url https://gensyn-testnet.g.alchemy.com/public \
   --verifier blockscout \
   --verifier-url 'https://gensyn-testnet.explorer.alchemy.com/api/' \
-  [contract-address] \
+  [ERC1967Proxy] \
+  lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol:ERC1967Proxy
+```
+
+Verify the implementation on Blockscout:
+
+```bash
+forge verify-contract \
+  --rpc-url https://gensyn-testnet.g.alchemy.com/public \
+  --verifier blockscout \
+  --verifier-url 'https://gensyn-testnet.explorer.alchemy.com/api/' \
+  [SwarmCoordinator-Implementation] \
+  src/SwarmCoordinator.sol:SwarmCoordinator
+```
+
+#### Deploy new version
+
+Once the proxy was deployed and we need to deploy a new contract version, we have to use the existing proxy address contract.
+
+```bash
+forge script script/DeploySwarmCoordinatorProxy.s.sol --slow \
+   --rpc-url=$ETH_RPC_URL \
+   --private-key=$ETH_PRIVATE_KEY \
+   --sig "deployNewVersion()" \
+   --broadcast
+```
+
+Make sure to verify the new implementation:
+
+```bash
+forge verify-contract \
+  --rpc-url https://gensyn-testnet.g.alchemy.com/public \
+  --verifier blockscout \
+  --verifier-url 'https://gensyn-testnet.explorer.alchemy.com/api/' \
+  [SwarmCoordinator-NewVersion] \
   src/SwarmCoordinator.sol:SwarmCoordinator
 ```
 
