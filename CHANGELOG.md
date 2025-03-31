@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- /
-
-## [0.3] - 2025-03-30
-
 ### Added
 
 - Changelog to track changes
@@ -19,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `OWNER_ROLE`, `BOOTNODE_MANAGER_ROLE`, `STAGE_MANAGER_ROLE` as `byte32` replacing existing roles
 
 ### Changed
+
+- SwarmCoordinator works as a UUPS proxy
 
 ### Deprecated
 

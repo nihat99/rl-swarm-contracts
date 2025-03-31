@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @title SwarmCoordinator
  * @dev Manages coordination of a swarm network including round/stage progression,
  * peer registration, bootnode management, and winner selection.
  */
-contract SwarmCoordinator {
+contract SwarmCoordinator is UUPSUpgradeable {
     // .---------------------------------------------------.
     // |  █████████   █████               █████            |
     // | ███░░░░░███ ░░███               ░░███             |
@@ -155,10 +155,15 @@ contract SwarmCoordinator {
     // |  ░░░░░░░░░   ░░░░░░  ░░░░ ░░░░░ ░░░░░░     ░░░░░  ░░░░░       ░░░░░░░░  ░░░░░░     ░░░░░   ░░░░░░  ░░░░░     |
     // '--------------------------------------------------------------------------------------------------------------'
 
-    constructor() {
-        _grantRole(OWNER_ROLE, msg.sender);
-        _grantRole(STAGE_MANAGER_ROLE, msg.sender);
-        _grantRole(BOOTNODE_MANAGER_ROLE, msg.sender);
+    function initialize(address owner_) external initializer {
+        _grantRole(OWNER_ROLE, owner_);
+        _grantRole(STAGE_MANAGER_ROLE, owner_);
+        _grantRole(BOOTNODE_MANAGER_ROLE, owner_);
+        __UUPSUpgradeable_init();
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
+        // Intentionally left blank
     }
 
     // .---------------------------------------.
