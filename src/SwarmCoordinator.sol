@@ -424,11 +424,6 @@ contract SwarmCoordinator is UUPSUpgradeable {
             _uniqueVoters++;
         }
 
-        // Validate all peer IDs exist
-        for (uint256 i = 0; i < winners.length; i++) {
-            if (_peerIdToEoa[winners[i]] == address(0)) revert InvalidPeerId();
-        }
-
         // Record the vote
         _roundVotes[roundNumber][msg.sender] = winners;
 

@@ -370,6 +370,28 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getPeerVoteCount(0, winners[1]), 1);
     }
 
+    function test_Anyone_CanSubmit_UnregisteredPeerIds() public {
+        string[] memory winners = new string[](2);
+        winners[0] = "QmWinner1";
+        winners[1] = "QmWinner2";
+
+        // Submit winners for round 0
+        vm.prank(_user1);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.WinnerSubmitted(_user1, 0, winners);
+        swarmCoordinator.submitWinners(0, winners);
+
+        // Verify votes
+        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, _user1);
+        assertEq(voterVotes.length, 2);
+        assertEq(voterVotes[0], winners[0]);
+        assertEq(voterVotes[1], winners[1]);
+
+        // Verify vote counts
+        assertEq(swarmCoordinator.getPeerVoteCount(0, winners[0]), 1);
+        assertEq(swarmCoordinator.getPeerVoteCount(0, winners[1]), 1);
+    }
+
     function test_Nobody_CanSubmitWinners_ForFutureRound() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
