@@ -171,40 +171,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(eoas[0], user, "First peer ID should map to user");
         assertEq(eoas[1], user, "Second peer ID should map to user");
         assertEq(eoas[2], user, "Third peer ID should map to user");
-
-        // Verify another user cannot register an already registered peer ID
-        // address otherUser = makeAddr("otherUser");
-        // vm.prank(otherUser);
-        // vm.expectRevert(SwarmCoordinator.PeerIdAlreadyRegistered.selector);
-        // swarmCoordinator.registerPeer(peerId1);
     }
-
-    // function test_Nobody_CanUpdate_ItsOwnPeerId() public {
-    //     address user = makeAddr("user");
-    //     string memory peerId1 = "peerId1";
-    //     string memory peerId2 = "peerId2";
-
-    //     // User registers first peer
-    //     vm.prank(user);
-    //     vm.expectEmit(true, true, false, true);
-    //     emit SwarmCoordinator.PeerRegistered(user, peerId1);
-    //     swarmCoordinator.registerPeer(peerId1);
-
-    //     // Verify first peer ID was stored correctly
-    //     address[] memory addresses = new address[](1);
-    //     addresses[0] = user;
-    //     string[] memory storedPeerIds = swarmCoordinator.getPeerId(addresses);
-    //     assertEq(storedPeerIds[0], peerId1, "First peer ID not stored correctly");
-
-    //     // Try to update to second peer - should fail
-    //     vm.prank(user);
-    //     vm.expectRevert(SwarmCoordinator.EoaAlreadyHasPeerId.selector);
-    //     swarmCoordinator.registerPeer(peerId2);
-
-    //     // Verify peer ID was not changed
-    //     storedPeerIds = swarmCoordinator.getPeerId(addresses);
-    //     assertEq(storedPeerIds[0], peerId1, "Peer ID should not have changed");
-    // }
 
     function test_Anyone_CanGetEoa_ForPeerId() public {
         address user = makeAddr("user");
