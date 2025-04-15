@@ -68,6 +68,9 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
     mapping(bytes32 => mapping(address => bool)) private _roleToAddress;
 
+    // Maps peer ID to whether it has been voted on
+    // mapping(string => bool) transient private _votedFor;
+
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant BOOTNODE_MANAGER_ROLE = keccak256("BOOTNODE_MANAGER_ROLE");
     bytes32 public constant STAGE_MANAGER_ROLE = keccak256("STAGE_MANAGER_ROLE");
@@ -113,6 +116,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     error OnlyOwner();
     error OnlyBootnodeManager();
     error OnlyStageManager();
+    error InvalidVote();
 
     // .-------------------------------------------------------------------------------------.
     // | ██████   ██████              █████  ███     ██████   ███                            |
@@ -414,6 +418,15 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         // Check if sender has already voted
         if (_roundVotes[roundNumber][msg.sender].length > 0) revert WinnerAlreadyVoted();
+
+        // Check for duplicate winners
+        for (uint256 i = 0; i < winners.length; i++) {
+            for (uint256 j = i + 1; j < winners.length; j++) {
+                if (keccak256(bytes(winners[i])) == keccak256(bytes(winners[j]))) {
+                    revert InvalidVote();
+                }
+            }
+        }
 
         // If this is the first time this address has voted, increment unique voters
         if (_voterVoteCounts[msg.sender] == 0) {
