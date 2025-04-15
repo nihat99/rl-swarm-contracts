@@ -68,9 +68,6 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
     mapping(bytes32 => mapping(address => bool)) private _roleToAddress;
 
-    // Maps peer ID to whether it has been voted on
-    // mapping(string => bool) transient private _votedFor;
-
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant BOOTNODE_MANAGER_ROLE = keccak256("BOOTNODE_MANAGER_ROLE");
     bytes32 public constant STAGE_MANAGER_ROLE = keccak256("STAGE_MANAGER_ROLE");
