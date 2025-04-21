@@ -1096,7 +1096,7 @@ contract SwarmCoordinatorTest is Test {
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, reward);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward);
-        swarmCoordinator.submitReward(reward);
+        swarmCoordinator.submitReward(0, reward);
 
         // Verify reward was recorded
         assertEq(swarmCoordinator.getRoundReward(0, _user1), reward);
@@ -1111,12 +1111,12 @@ contract SwarmCoordinatorTest is Test {
 
         // First submission
         vm.prank(_user1);
-        swarmCoordinator.submitReward(reward1);
+        swarmCoordinator.submitReward(0, reward1);
 
         // Try to submit again
         vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.RewardAlreadySubmitted.selector);
-        swarmCoordinator.submitReward(reward2);
+        swarmCoordinator.submitReward(0, reward2);
     }
 
     function test_Anyone_CanSubmitReward_InDifferentRounds() public {
@@ -1135,7 +1135,7 @@ contract SwarmCoordinatorTest is Test {
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, reward1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
-        swarmCoordinator.submitReward(reward1);
+        swarmCoordinator.submitReward(0, reward1);
 
         // Advance to next round
         vm.prank(_stageManager);
@@ -1147,7 +1147,7 @@ contract SwarmCoordinatorTest is Test {
         emit SwarmCoordinator.RewardSubmitted(_user1, 1, reward2);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
-        swarmCoordinator.submitReward(reward2);
+        swarmCoordinator.submitReward(1, reward2);
 
         // Verify rewards were recorded correctly
         assertEq(swarmCoordinator.getRoundReward(0, _user1), reward1);
@@ -1162,16 +1162,53 @@ contract SwarmCoordinatorTest is Test {
 
         // First user submits reward
         vm.prank(_user1);
-        swarmCoordinator.submitReward(reward1);
+        swarmCoordinator.submitReward(0, reward1);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward1);
 
         // Second user submits reward
         vm.prank(_user2);
-        swarmCoordinator.submitReward(reward2);
+        swarmCoordinator.submitReward(0, reward2);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 
     function test_TotalContractRewards_StartsAtZero() public view {
         assertEq(swarmCoordinator.getTotalContractRewards(), 0);
+    }
+
+    function test_Nobody_CanSubmitReward_ForFutureRound() public {
+        uint256 reward = 100;
+
+        // Try to submit reward for future round
+        vm.prank(_user1);
+        vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
+        swarmCoordinator.submitReward(1, reward);
+    }
+
+    function test_Anyone_CanSubmitReward_ForPastRound() public {
+        uint256 reward1 = 100;
+        uint256 reward2 = 200;
+
+        // Set stage count and stage updater
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
+        vm.stopPrank();
+
+        // Submit reward in round 0
+        vm.prank(_user1);
+        swarmCoordinator.submitReward(0, reward1);
+
+        // Advance to next round
+        vm.prank(_stageManager);
+        swarmCoordinator.updateStageAndRound();
+
+        // Submit reward for round 0 again (as a different user)
+        vm.prank(_user2);
+        swarmCoordinator.submitReward(0, reward2);
+
+        // Verify rewards were recorded correctly
+        assertEq(swarmCoordinator.getRoundReward(0, _user1), reward1);
+        assertEq(swarmCoordinator.getRoundReward(0, _user2), reward2);
+        assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 }

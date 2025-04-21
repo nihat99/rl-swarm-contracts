@@ -682,22 +682,26 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
-     * @dev Submits a reward for the current round
+     * @dev Submits a reward for a specific round
+     * @param roundNumber The round number for which to submit the reward
      * @param reward The reward amount to submit
      */
-    function submitReward(uint256 reward) external {
+    function submitReward(uint256 roundNumber, uint256 reward) external {
+        // Check if round number is valid (must be less than or equal to current round)
+        if (roundNumber > _currentRound) revert InvalidRoundNumber();
+
         // Check if sender has already submitted a reward for this round
-        if (_hasSubmittedReward[_currentRound][msg.sender]) revert RewardAlreadySubmitted();
+        if (_hasSubmittedReward[roundNumber][msg.sender]) revert RewardAlreadySubmitted();
 
         // Record the reward
-        _roundRewards[_currentRound][msg.sender] = reward;
-        _hasSubmittedReward[_currentRound][msg.sender] = true;
+        _roundRewards[roundNumber][msg.sender] = reward;
+        _hasSubmittedReward[roundNumber][msg.sender] = true;
 
         // Update total rewards
         _totalRewards[msg.sender] += reward;
         _totalContractRewards += reward;
 
-        emit RewardSubmitted(msg.sender, _currentRound, reward);
+        emit RewardSubmitted(msg.sender, roundNumber, reward);
         emit CumulativeRewardsUpdated(msg.sender, _totalRewards[msg.sender]);
     }
 
