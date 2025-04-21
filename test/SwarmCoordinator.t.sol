@@ -1087,4 +1087,60 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(2, winners1);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
     }
+
+    function test_Anyone_CanSubmitReward_Successfully() public {
+        uint256 reward = 100;
+
+        vm.prank(_user1);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, reward);
+        swarmCoordinator.submitReward(reward);
+
+        // Verify reward was recorded
+        assertEq(swarmCoordinator.getRoundReward(0, _user1), reward);
+        assertEq(swarmCoordinator.getTotalRewards(_user1), reward);
+        assertTrue(swarmCoordinator.hasSubmittedReward(0, _user1));
+    }
+
+    function test_Nobody_CanSubmitReward_TwiceInSameRound() public {
+        uint256 reward1 = 100;
+        uint256 reward2 = 200;
+
+        // First submission
+        vm.prank(_user1);
+        swarmCoordinator.submitReward(reward1);
+
+        // Try to submit again
+        vm.prank(_user1);
+        vm.expectRevert(SwarmCoordinator.RewardAlreadySubmitted.selector);
+        swarmCoordinator.submitReward(reward2);
+    }
+
+    function test_Anyone_CanSubmitReward_InDifferentRounds() public {
+        uint256 reward1 = 100;
+        uint256 reward2 = 200;
+
+        // Set stage count and stage updater
+        vm.startPrank(_owner);
+        swarmCoordinator.setStageCount(1);
+        swarmCoordinator.grantRole(swarmCoordinator.STAGE_MANAGER_ROLE(), _stageManager);
+        vm.stopPrank();
+
+        // Submit reward in round 0
+        vm.prank(_user1);
+        swarmCoordinator.submitReward(reward1);
+
+        // Advance to next round
+        vm.prank(_stageManager);
+        swarmCoordinator.updateStageAndRound();
+
+        // Submit reward in round 1
+        vm.prank(_user1);
+        swarmCoordinator.submitReward(reward2);
+
+        // Verify rewards were recorded correctly
+        assertEq(swarmCoordinator.getRoundReward(0, _user1), reward1);
+        assertEq(swarmCoordinator.getRoundReward(1, _user1), reward2);
+        assertEq(swarmCoordinator.getTotalRewards(_user1), reward1 + reward2);
+    }
 }

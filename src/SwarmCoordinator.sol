@@ -92,6 +92,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     event WinnerSubmitted(address indexed voter, uint256 indexed roundNumber, string[] winners);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
+    event RewardSubmitted(address indexed account, uint256 indexed roundNumber, uint256 reward);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -113,6 +114,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     error OnlyOwner();
     error OnlyBootnodeManager();
     error OnlyStageManager();
+    error RewardAlreadySubmitted();
 
     // .-------------------------------------------------------------------------------------.
     // | ██████   ██████              █████  ███     ██████   ███                            |
@@ -124,6 +126,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // | █████     █████░░██████ ░░████████ █████  █████     █████░░██████  █████     ██████ |
     // |░░░░░     ░░░░░  ░░░░░░   ░░░░░░░░ ░░░░░  ░░░░░     ░░░░░  ░░░░░░  ░░░░░     ░░░░░░  |
     // '-------------------------------------------------------------------------------------'
+
+    // Maps round number to mapping of account address to their submitted reward
+    mapping(uint256 => mapping(address => uint256)) private _roundRewards;
+    // Maps account address to their total rewards across all rounds
+    mapping(address => uint256) private _totalRewards;
+    // Array of top reward earners (sorted by total rewards)
+    address[] private _topRewardEarners;
+    // Maximum number of top reward earners to track
+    uint256 private constant MAX_TOP_REWARD_EARNERS = 100;
+    // Maps account address to whether they have submitted a reward for a round
+    mapping(uint256 => mapping(address => bool)) private _hasSubmittedReward;
 
     // Owner modifier
     modifier onlyOwner() {
@@ -151,7 +164,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // |░███         ░███ ░███ ░███ ░███ ░░█████   ░███     ░███ ░░░  ░███ ░███ ░███ ░░░   ░███    ░███ ░███ ░███ ░░░ |
     // |░░███     ███░███ ░███ ░███ ░███  ░░░░███  ░███ ███ ░███      ░███ ░███ ░███  ███  ░███ ███░███ ░███ ░███     |
     // | ░░█████████ ░░██████  ████ █████ ██████   ░░█████  █████     ░░████████░░██████   ░░█████ ░░██████  █████    |
-    // |  ░░░░░░░░░   ░░░░░░  ░░░░ ░░░░░ ░░░░░░     ░░░░░  ░░░░░       ░░░░░░░░  ░░░░░░     ░░░░░   ░░░░░░  ░░░░░     |
+    // |  ░░░░░░░░░   ░░░░░░  ░░░░░░     ░░░░░░     ░░░░░  ░░░░░       ░░░░░░░░  ░░░░░░     ░░░░░   ░░░░░░  ░░░░░     |
     // '--------------------------------------------------------------------------------------------------------------'
 
     function initialize(address owner_) external initializer {
@@ -668,5 +681,52 @@ contract SwarmCoordinator is UUPSUpgradeable {
      */
     function uniqueVotedPeers() external view returns (uint256) {
         return _uniqueVotedPeers;
+    }
+
+    /**
+     * @dev Submits a reward for the current round
+     * @param reward The reward amount to submit
+     */
+    function submitReward(uint256 reward) external {
+        // Check if sender has already submitted a reward for this round
+        if (_hasSubmittedReward[_currentRound][msg.sender]) revert RewardAlreadySubmitted();
+
+        // Record the reward
+        _roundRewards[_currentRound][msg.sender] = reward;
+        _hasSubmittedReward[_currentRound][msg.sender] = true;
+
+        // Update total rewards
+        _totalRewards[msg.sender] += reward;
+
+        emit RewardSubmitted(msg.sender, _currentRound, reward);
+    }
+
+    /**
+     * @dev Gets the reward submitted by an account for a specific round
+     * @param roundNumber The round number to query
+     * @param account The address of the account
+     * @return The reward amount submitted by the account for that round
+     */
+    function getRoundReward(uint256 roundNumber, address account) external view returns (uint256) {
+        return _roundRewards[roundNumber][account];
+    }
+
+    /**
+     * @dev Gets the total rewards earned by an account across all rounds
+     * @param account The address of the account
+     * @return The total rewards earned by the account
+     */
+    function getTotalRewards(address account) external view returns (uint256) {
+        return _totalRewards[account];
+    }
+
+    /**
+     * @dev Checks if an account has submitted a reward for a specific round
+     * @param roundNumber The round number to check
+     * @param account The address of the account
+     * @return True if the account has submitted a reward for that round, false otherwise
+     */
+    function hasSubmittedReward(uint256 roundNumber, address account) external view returns (bool) {
+        return _hasSubmittedReward[roundNumber][account];
     }
 }
