@@ -54,6 +54,14 @@ contract SwarmCoordinator is UUPSUpgradeable {
     mapping(string => bool) private _hasBeenVotedOn;
     // List of bootnode addresses/endpoints
     string[] private _bootnodes;
+    // Maps round number to mapping of account address to their submitted reward
+    mapping(uint256 => mapping(address => uint256)) private _roundRewards;
+    // Maps account address to their total rewards across all rounds
+    mapping(address => uint256) private _totalRewards;
+    // Total rewards across all users
+    uint256 private _totalContractRewards;
+    // Maps account address to whether they have submitted a reward for a round
+    mapping(uint256 => mapping(address => bool)) private _hasSubmittedReward;
 
     // .----------------------------------------------.
     // | ███████████            ████                  |
@@ -93,6 +101,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
     event RewardSubmitted(address indexed account, uint256 indexed roundNumber, uint256 reward);
+    event CumulativeRewardsUpdated(address indexed account, uint256 totalRewards);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -126,17 +135,6 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // | █████     █████░░██████ ░░████████ █████  █████     █████░░██████  █████     ██████ |
     // |░░░░░     ░░░░░  ░░░░░░   ░░░░░░░░ ░░░░░  ░░░░░     ░░░░░  ░░░░░░  ░░░░░     ░░░░░░  |
     // '-------------------------------------------------------------------------------------'
-
-    // Maps round number to mapping of account address to their submitted reward
-    mapping(uint256 => mapping(address => uint256)) private _roundRewards;
-    // Maps account address to their total rewards across all rounds
-    mapping(address => uint256) private _totalRewards;
-    // Array of top reward earners (sorted by total rewards)
-    address[] private _topRewardEarners;
-    // Maximum number of top reward earners to track
-    uint256 private constant MAX_TOP_REWARD_EARNERS = 100;
-    // Maps account address to whether they have submitted a reward for a round
-    mapping(uint256 => mapping(address => bool)) private _hasSubmittedReward;
 
     // Owner modifier
     modifier onlyOwner() {
@@ -697,8 +695,10 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         // Update total rewards
         _totalRewards[msg.sender] += reward;
+        _totalContractRewards += reward;
 
         emit RewardSubmitted(msg.sender, _currentRound, reward);
+        emit CumulativeRewardsUpdated(msg.sender, _totalRewards[msg.sender]);
     }
 
     /**
@@ -728,5 +728,13 @@ contract SwarmCoordinator is UUPSUpgradeable {
      */
     function hasSubmittedReward(uint256 roundNumber, address account) external view returns (bool) {
         return _hasSubmittedReward[roundNumber][account];
+    }
+
+    /**
+     * @dev Gets the total rewards across all users
+     * @return The total rewards submitted by all users
+     */
+    function getTotalContractRewards() external view returns (uint256) {
+        return _totalContractRewards;
     }
 }
