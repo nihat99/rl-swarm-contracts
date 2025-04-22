@@ -1099,8 +1099,12 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitReward(0, reward);
 
         // Verify reward was recorded
-        assertEq(swarmCoordinator.getRoundReward(0, _user1), reward);
-        assertEq(swarmCoordinator.getTotalRewards(_user1), reward);
+        address[] memory accounts = new address[](1);
+        accounts[0] = _user1;
+        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        assertEq(rewards[0], reward);
+        assertEq(totalRewards[0], reward);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward);
         assertTrue(swarmCoordinator.hasSubmittedReward(0, _user1));
     }
@@ -1150,9 +1154,14 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitReward(1, reward2);
 
         // Verify rewards were recorded correctly
-        assertEq(swarmCoordinator.getRoundReward(0, _user1), reward1);
-        assertEq(swarmCoordinator.getRoundReward(1, _user1), reward2);
-        assertEq(swarmCoordinator.getTotalRewards(_user1), reward1 + reward2);
+        address[] memory accounts = new address[](1);
+        accounts[0] = _user1;
+        uint256[] memory rewards0 = swarmCoordinator.getRoundReward(0, accounts);
+        uint256[] memory rewards1 = swarmCoordinator.getRoundReward(1, accounts);
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        assertEq(rewards0[0], reward1);
+        assertEq(rewards1[0], reward2);
+        assertEq(totalRewards[0], reward1 + reward2);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 
@@ -1168,6 +1177,16 @@ contract SwarmCoordinatorTest is Test {
         // Second user submits reward
         vm.prank(_user2);
         swarmCoordinator.submitReward(0, reward2);
+
+        // Check individual total rewards
+        address[] memory accounts = new address[](2);
+        accounts[0] = _user1;
+        accounts[1] = _user2;
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        assertEq(totalRewards[0], reward1);
+        assertEq(totalRewards[1], reward2);
+
+        // Check contract total rewards
         assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 
@@ -1207,8 +1226,78 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitReward(0, reward2);
 
         // Verify rewards were recorded correctly
-        assertEq(swarmCoordinator.getRoundReward(0, _user1), reward1);
-        assertEq(swarmCoordinator.getRoundReward(0, _user2), reward2);
+        address[] memory accounts = new address[](2);
+        accounts[0] = _user1;
+        accounts[1] = _user2;
+        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+        assertEq(rewards[0], reward1);
+        assertEq(rewards[1], reward2);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
+    }
+
+    function test_GetRoundReward_MultipleAddresses() public {
+        uint256 reward1 = 100;
+        uint256 reward2 = 200;
+        uint256 reward3 = 300;
+
+        // Submit rewards for different users
+        vm.prank(_user1);
+        swarmCoordinator.submitReward(0, reward1);
+        vm.prank(_user2);
+        swarmCoordinator.submitReward(0, reward2);
+        vm.prank(_user);
+        swarmCoordinator.submitReward(0, reward3);
+
+        // Get rewards for multiple addresses
+        address[] memory accounts = new address[](3);
+        accounts[0] = _user1;
+        accounts[1] = _user2;
+        accounts[2] = _user;
+        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+
+        // Verify the rewards
+        assertEq(rewards.length, 3);
+        assertEq(rewards[0], reward1);
+        assertEq(rewards[1], reward2);
+        assertEq(rewards[2], reward3);
+    }
+
+    function test_GetRoundReward_EmptyArray() public view {
+        address[] memory accounts = new address[](0);
+        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+        assertEq(rewards.length, 0);
+    }
+
+    function test_GetTotalRewards_MultipleAddresses() public {
+        uint256 reward1 = 100;
+        uint256 reward2 = 200;
+        uint256 reward3 = 300;
+
+        // Submit rewards for different users
+        vm.prank(_user1);
+        swarmCoordinator.submitReward(0, reward1);
+        vm.prank(_user2);
+        swarmCoordinator.submitReward(0, reward2);
+        vm.prank(_user);
+        swarmCoordinator.submitReward(0, reward3);
+
+        // Get total rewards for multiple addresses
+        address[] memory accounts = new address[](3);
+        accounts[0] = _user1;
+        accounts[1] = _user2;
+        accounts[2] = _user;
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+
+        // Verify the total rewards
+        assertEq(totalRewards.length, 3);
+        assertEq(totalRewards[0], reward1);
+        assertEq(totalRewards[1], reward2);
+        assertEq(totalRewards[2], reward3);
+    }
+
+    function test_GetTotalRewards_EmptyArray() public view {
+        address[] memory accounts = new address[](0);
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        assertEq(totalRewards.length, 0);
     }
 }

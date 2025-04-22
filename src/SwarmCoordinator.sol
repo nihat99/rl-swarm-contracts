@@ -706,22 +706,34 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
-     * @dev Gets the reward submitted by an account for a specific round
+     * @dev Gets the reward submitted by accounts for a specific round
      * @param roundNumber The round number to query
-     * @param account The address of the account
-     * @return The reward amount submitted by the account for that round
+     * @param accounts Array of addresses to query
+     * @return rewards Array of corresponding reward amounts for each account
      */
-    function getRoundReward(uint256 roundNumber, address account) external view returns (uint256) {
-        return _roundRewards[roundNumber][account];
+    function getRoundReward(uint256 roundNumber, address[] calldata accounts)
+        external
+        view
+        returns (uint256[] memory rewards)
+    {
+        rewards = new uint256[](accounts.length);
+        for (uint256 i = 0; i < accounts.length; i++) {
+            rewards[i] = _roundRewards[roundNumber][accounts[i]];
+        }
+        return rewards;
     }
 
     /**
-     * @dev Gets the total rewards earned by an account across all rounds
-     * @param account The address of the account
-     * @return The total rewards earned by the account
+     * @dev Gets the total rewards earned by accounts across all rounds
+     * @param accounts Array of addresses to query
+     * @return rewards Array of corresponding total rewards for each account
      */
-    function getTotalRewards(address account) external view returns (uint256) {
-        return _totalRewards[account];
+    function getTotalRewards(address[] calldata accounts) external view returns (uint256[] memory rewards) {
+        rewards = new uint256[](accounts.length);
+        for (uint256 i = 0; i < accounts.length; i++) {
+            rewards[i] = _totalRewards[accounts[i]];
+        }
+        return rewards;
     }
 
     /**
