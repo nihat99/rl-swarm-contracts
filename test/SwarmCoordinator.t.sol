@@ -18,6 +18,7 @@ contract SwarmCoordinatorTest is Test {
         vm.startPrank(_owner);
         swarmCoordinator = new SwarmCoordinator();
         swarmCoordinator.initialize(_owner);
+        swarmCoordinator.setStageCount(2);
         vm.stopPrank();
     }
 
@@ -780,6 +781,9 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_WinnerLeaderboard_CorrectlyHandlesMoreThanMaxTopWinners() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(0);
+
         string[] memory winners = new string[](100);
         address[] memory users = new address[](100);
         for (uint256 i = 0; i < 100; i++) {
@@ -829,6 +833,9 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_VoterLeaderboard_CorrectlyHandlesMoreThanMaxTopVoters() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(0);
+
         // Create 100 voters
         address[] memory voters = new address[](100);
         for (uint256 i = 0; i < 100; i++) {
@@ -896,6 +903,9 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_UniqueVoters_DoesNotIncrementForSameVoter() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(0);
+
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -1032,6 +1042,9 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_UniqueVotedPeers_DoesNotIncrementAcrossRounds() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(0);
+
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -1055,6 +1068,9 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_UniqueVotedPeers_TracksUniquenessAcrossRounds() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(0);
+
         string[] memory winners1 = new string[](1);
         winners1[0] = "QmWinner1";
         string[] memory winners2 = new string[](1);
@@ -1089,38 +1105,82 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanSubmitReward_Successfully() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
+
         uint256 reward = 100;
 
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, reward);
-        vm.expectEmit(true, true, false, true);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward);
+        vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward);
-        swarmCoordinator.submitReward(0, reward);
+        vm.expectEmit(true, false, false, true);
+        emit SwarmCoordinator.TotalContractRewardsUpdated(reward);
+        swarmCoordinator.submitReward(0, 0, reward);
 
         // Verify reward was recorded
         address[] memory accounts = new address[](1);
         accounts[0] = _user1;
-        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
         assertEq(rewards[0], reward);
         assertEq(totalRewards[0], reward);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward);
-        assertTrue(swarmCoordinator.hasSubmittedReward(0, _user1));
+        assertTrue(swarmCoordinator.hasSubmittedRoundStageReward(0, 0, _user1));
     }
 
-    function test_Nobody_CanSubmitReward_TwiceInSameRound() public {
+    function test_Nobody_CanSubmitReward_TwiceInSameRoundAndStage() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
+
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
         // First submission
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1);
 
         // Try to submit again
         vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.RewardAlreadySubmitted.selector);
-        swarmCoordinator.submitReward(0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2);
+    }
+
+    function test_Anyone_CanSubmitReward_InDifferentStages() public {
+        uint256 reward1 = 100;
+        uint256 reward2 = 200;
+
+        // Set stage count
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
+
+        // Submit reward in stage 0
+        vm.prank(_user1);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1);
+        vm.expectEmit(true, true, false, true);
+        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1);
+
+        // Submit reward in stage 1
+        vm.prank(_user1);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 1, reward2);
+        vm.expectEmit(true, true, false, true);
+        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
+        swarmCoordinator.submitReward(0, 1, reward2);
+
+        // Verify rewards were recorded correctly
+        address[] memory accounts = new address[](1);
+        accounts[0] = _user1;
+        uint256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        uint256[] memory rewards1 = swarmCoordinator.getRoundStageReward(0, 1, accounts);
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        assertEq(rewards0[0], reward1);
+        assertEq(rewards1[0], reward2);
+        assertEq(totalRewards[0], reward1 + reward2);
+        assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 
     function test_Anyone_CanSubmitReward_InDifferentRounds() public {
@@ -1136,10 +1196,10 @@ contract SwarmCoordinatorTest is Test {
         // Submit reward in round 0
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, reward1);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
-        swarmCoordinator.submitReward(0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1);
 
         // Advance to next round
         vm.prank(_stageManager);
@@ -1148,16 +1208,16 @@ contract SwarmCoordinatorTest is Test {
         // Submit reward in round 1
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 1, reward2);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 1, 0, reward2);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
-        swarmCoordinator.submitReward(1, reward2);
+        swarmCoordinator.submitReward(1, 0, reward2);
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
         accounts[0] = _user1;
-        uint256[] memory rewards0 = swarmCoordinator.getRoundReward(0, accounts);
-        uint256[] memory rewards1 = swarmCoordinator.getRoundReward(1, accounts);
+        uint256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        uint256[] memory rewards1 = swarmCoordinator.getRoundStageReward(1, 0, accounts);
         uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
         assertEq(rewards0[0], reward1);
         assertEq(rewards1[0], reward2);
@@ -1166,17 +1226,24 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_TotalContractRewards_AccumulatesAcrossUsers() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
+
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
         // First user submits reward
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, reward1);
+        vm.expectEmit(true, false, false, true);
+        emit SwarmCoordinator.TotalContractRewardsUpdated(reward1);
+        swarmCoordinator.submitReward(0, 0, reward1);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward1);
 
         // Second user submits reward
         vm.prank(_user2);
-        swarmCoordinator.submitReward(0, reward2);
+        vm.expectEmit(true, false, false, true);
+        emit SwarmCoordinator.TotalContractRewardsUpdated(reward1 + reward2);
+        swarmCoordinator.submitReward(0, 0, reward2);
 
         // Check individual total rewards
         address[] memory accounts = new address[](2);
@@ -1200,7 +1267,20 @@ contract SwarmCoordinatorTest is Test {
         // Try to submit reward for future round
         vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
-        swarmCoordinator.submitReward(1, reward);
+        swarmCoordinator.submitReward(1, 0, reward);
+    }
+
+    function test_Nobody_CanSubmitReward_ForInvalidStage() public {
+        uint256 reward = 100;
+
+        // Set stage count
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
+
+        // Try to submit reward for invalid stage
+        vm.prank(_user1);
+        vm.expectRevert(SwarmCoordinator.InvalidStageNumber.selector);
+        swarmCoordinator.submitReward(0, 2, reward);
     }
 
     function test_Anyone_CanSubmitReward_ForPastRound() public {
@@ -1215,7 +1295,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit reward in round 0
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1);
 
         // Advance to next round
         vm.prank(_stageManager);
@@ -1223,37 +1303,40 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit reward for round 0 again (as a different user)
         vm.prank(_user2);
-        swarmCoordinator.submitReward(0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2);
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](2);
         accounts[0] = _user1;
         accounts[1] = _user2;
-        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         assertEq(rewards[0], reward1);
         assertEq(rewards[1], reward2);
         assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 
-    function test_GetRoundReward_MultipleAddresses() public {
+    function test_GetRoundStageReward_MultipleAddresses() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
+
         uint256 reward1 = 100;
         uint256 reward2 = 200;
         uint256 reward3 = 300;
 
         // Submit rewards for different users
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1);
         vm.prank(_user2);
-        swarmCoordinator.submitReward(0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2);
         vm.prank(_user);
-        swarmCoordinator.submitReward(0, reward3);
+        swarmCoordinator.submitReward(0, 0, reward3);
 
         // Get rewards for multiple addresses
         address[] memory accounts = new address[](3);
         accounts[0] = _user1;
         accounts[1] = _user2;
         accounts[2] = _user;
-        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
 
         // Verify the rewards
         assertEq(rewards.length, 3);
@@ -1262,24 +1345,27 @@ contract SwarmCoordinatorTest is Test {
         assertEq(rewards[2], reward3);
     }
 
-    function test_GetRoundReward_EmptyArray() public view {
+    function test_GetRoundStageReward_EmptyArray() public view {
         address[] memory accounts = new address[](0);
-        uint256[] memory rewards = swarmCoordinator.getRoundReward(0, accounts);
+        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         assertEq(rewards.length, 0);
     }
 
     function test_GetTotalRewards_MultipleAddresses() public {
+        vm.prank(_owner);
+        swarmCoordinator.setStageCount(2);
+
         uint256 reward1 = 100;
         uint256 reward2 = 200;
         uint256 reward3 = 300;
 
         // Submit rewards for different users
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1);
         vm.prank(_user2);
-        swarmCoordinator.submitReward(0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2);
         vm.prank(_user);
-        swarmCoordinator.submitReward(0, reward3);
+        swarmCoordinator.submitReward(0, 0, reward3);
 
         // Get total rewards for multiple addresses
         address[] memory accounts = new address[](3);
