@@ -54,6 +54,12 @@ contract SwarmCoordinator is UUPSUpgradeable {
     mapping(string => bool) private _hasBeenVotedOn;
     // List of bootnode addresses/endpoints
     string[] private _bootnodes;
+    // Maps round number and stage to mapping of account address to their submitted reward
+    mapping(uint256 => mapping(uint256 => mapping(address => uint256))) private _roundStageRewards;
+    // Maps round number and stage to mapping of account address to whether they have submitted a reward
+    mapping(uint256 => mapping(uint256 => mapping(address => bool))) private _hasSubmittedRoundStageReward;
+    // Maps account address to their total rewards across all rounds
+    mapping(address => uint256) private _totalRewards;
 
     // .----------------------------------------------.
     // | ███████████            ████                  |
@@ -92,6 +98,10 @@ contract SwarmCoordinator is UUPSUpgradeable {
     event WinnerSubmitted(address indexed voter, uint256 indexed roundNumber, string[] winners);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
+    event RewardSubmitted(
+        address indexed account, uint256 indexed roundNumber, uint256 indexed stageNumber, uint256 reward
+    );
+    event CumulativeRewardsUpdated(address indexed account, uint256 totalRewards);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -113,6 +123,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
     error OnlyOwner();
     error OnlyBootnodeManager();
     error OnlyStageManager();
+    error RewardAlreadySubmitted();
+    error InvalidStageNumber();
     error InvalidVote();
 
     // .-------------------------------------------------------------------------------------.
@@ -152,7 +164,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // |░███         ░███ ░███ ░███ ░███ ░░█████   ░███     ░███ ░░░  ░███ ░███ ░███ ░░░   ░███    ░███ ░███ ░███ ░░░ |
     // |░░███     ███░███ ░███ ░███ ░███  ░░░░███  ░███ ███ ░███      ░███ ░███ ░███  ███  ░███ ███░███ ░███ ░███     |
     // | ░░█████████ ░░██████  ████ █████ ██████   ░░█████  █████     ░░████████░░██████   ░░█████ ░░██████  █████    |
-    // |  ░░░░░░░░░   ░░░░░░  ░░░░ ░░░░░ ░░░░░░     ░░░░░  ░░░░░       ░░░░░░░░  ░░░░░░     ░░░░░   ░░░░░░  ░░░░░     |
+    // |  ░░░░░░░░░   ░░░░░░  ░░░░░░     ░░░░░░     ░░░░░  ░░░░░       ░░░░░░░░  ░░░░░░     ░░░░░   ░░░░░░  ░░░░░     |
     // '--------------------------------------------------------------------------------------------------------------'
 
     function initialize(address owner_) external initializer {
@@ -678,5 +690,79 @@ contract SwarmCoordinator is UUPSUpgradeable {
      */
     function uniqueVotedPeers() external view returns (uint256) {
         return _uniqueVotedPeers;
+    }
+
+    /**
+     * @dev Submits a reward for a specific round and stage
+     * @param roundNumber The round number for which to submit the reward
+     * @param stageNumber The stage number for which to submit the reward
+     * @param reward The reward amount to submit
+     */
+    function submitReward(uint256 roundNumber, uint256 stageNumber, uint256 reward) external {
+        // Check if round number is valid (must be less than or equal to current round)
+        if (roundNumber > _currentRound) revert InvalidRoundNumber();
+
+        // Check if stage number is valid (must be less than stage count)
+        if (stageNumber >= _stageCount) revert InvalidStageNumber();
+
+        // Check if sender has already submitted a reward for this round and stage
+        if (_hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender]) revert RewardAlreadySubmitted();
+
+        // Record the reward
+        _roundStageRewards[roundNumber][stageNumber][msg.sender] = reward;
+        _hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender] = true;
+
+        // Update total rewards
+        _totalRewards[msg.sender] += reward;
+
+        emit RewardSubmitted(msg.sender, roundNumber, stageNumber, reward);
+        emit CumulativeRewardsUpdated(msg.sender, _totalRewards[msg.sender]);
+    }
+
+    /**
+     * @dev Gets the reward submitted by accounts for a specific round and stage
+     * @param roundNumber The round number to query
+     * @param stageNumber The stage number to query
+     * @param accounts Array of addresses to query
+     * @return rewards Array of corresponding reward amounts for each account
+     */
+    function getRoundStageReward(uint256 roundNumber, uint256 stageNumber, address[] calldata accounts)
+        external
+        view
+        returns (uint256[] memory rewards)
+    {
+        rewards = new uint256[](accounts.length);
+        for (uint256 i = 0; i < accounts.length; i++) {
+            rewards[i] = _roundStageRewards[roundNumber][stageNumber][accounts[i]];
+        }
+        return rewards;
+    }
+
+    /**
+     * @dev Checks if an account has submitted a reward for a specific round and stage
+     * @param roundNumber The round number to check
+     * @param stageNumber The stage number to check
+     * @param account The address of the account
+     * @return True if the account has submitted a reward for that round and stage, false otherwise
+     */
+    function hasSubmittedRoundStageReward(uint256 roundNumber, uint256 stageNumber, address account)
+        external
+        view
+        returns (bool)
+    {
+        return _hasSubmittedRoundStageReward[roundNumber][stageNumber][account];
+    }
+
+    /**
+     * @dev Gets the total rewards earned by accounts across all rounds
+     * @param accounts Array of addresses to query
+     * @return rewards Array of corresponding total rewards for each account
+     */
+    function getTotalRewards(address[] calldata accounts) external view returns (uint256[] memory rewards) {
+        rewards = new uint256[](accounts.length);
+        for (uint256 i = 0; i < accounts.length; i++) {
+            rewards[i] = _totalRewards[accounts[i]];
+        }
+        return rewards;
     }
 }

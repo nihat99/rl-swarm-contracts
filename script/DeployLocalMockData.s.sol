@@ -112,12 +112,26 @@ contract DeployLocalMockData is Script {
         user2Round2Winners[0] = "QmPeer1";
         user2Round2Winners[1] = "QmPeer3";
         coordinator.submitWinners(2, user2Round2Winners);
-        // User 3 winners
-        // vm.broadcast(user3.privateKey);
-        // string[] memory user3Round2Winners = new string[](2);
-        // user3Round2Winners[0] = "QmPeer1";
-        // user3Round2Winners[1] = "QmPeer2";
-        // coordinator.submitWinners(2, user3Round2Winners);
+
+        // Submit rewards for each round and stage
+        vm.broadcast(user1.privateKey);
+        coordinator.submitReward(0, 0, 100);
+        vm.broadcast(user2.privateKey);
+        coordinator.submitReward(0, 0, 200);
+        vm.broadcast(user3.privateKey);
+        coordinator.submitReward(0, 0, 300);
+
+        vm.broadcast(user1.privateKey);
+        coordinator.submitReward(1, 0, 150);
+        vm.broadcast(user2.privateKey);
+        coordinator.submitReward(1, 0, 250);
+        vm.broadcast(user3.privateKey);
+        coordinator.submitReward(1, 0, 350);
+
+        vm.broadcast(user1.privateKey);
+        coordinator.submitReward(2, 0, 175);
+        vm.broadcast(user2.privateKey);
+        coordinator.submitReward(2, 0, 275);
 
         // Get top winners
         (string[] memory topWinners, uint256[] memory winnerWins) = coordinator.winnerLeaderboard(0, 3);
