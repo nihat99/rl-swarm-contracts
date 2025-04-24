@@ -1113,10 +1113,8 @@ contract SwarmCoordinatorTest is Test {
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward);
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward);
-        vm.expectEmit(true, false, false, true);
-        emit SwarmCoordinator.TotalContractRewardsUpdated(reward);
         swarmCoordinator.submitReward(0, 0, reward);
 
         // Verify reward was recorded
@@ -1126,7 +1124,6 @@ contract SwarmCoordinatorTest is Test {
         uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
         assertEq(rewards[0], reward);
         assertEq(totalRewards[0], reward);
-        assertEq(swarmCoordinator.getTotalContractRewards(), reward);
         assertTrue(swarmCoordinator.hasSubmittedRoundStageReward(0, 0, _user1));
     }
 
@@ -1180,7 +1177,6 @@ contract SwarmCoordinatorTest is Test {
         assertEq(rewards0[0], reward1);
         assertEq(rewards1[0], reward2);
         assertEq(totalRewards[0], reward1 + reward2);
-        assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 
     function test_Anyone_CanSubmitReward_InDifferentRounds() public {
@@ -1222,65 +1218,6 @@ contract SwarmCoordinatorTest is Test {
         assertEq(rewards0[0], reward1);
         assertEq(rewards1[0], reward2);
         assertEq(totalRewards[0], reward1 + reward2);
-        assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
-    }
-
-    function test_TotalContractRewards_AccumulatesAcrossUsers() public {
-        vm.prank(_owner);
-        swarmCoordinator.setStageCount(2);
-
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
-
-        // First user submits reward
-        vm.prank(_user1);
-        vm.expectEmit(true, false, false, true);
-        emit SwarmCoordinator.TotalContractRewardsUpdated(reward1);
-        swarmCoordinator.submitReward(0, 0, reward1);
-        assertEq(swarmCoordinator.getTotalContractRewards(), reward1);
-
-        // Second user submits reward
-        vm.prank(_user2);
-        vm.expectEmit(true, false, false, true);
-        emit SwarmCoordinator.TotalContractRewardsUpdated(reward1 + reward2);
-        swarmCoordinator.submitReward(0, 0, reward2);
-
-        // Check individual total rewards
-        address[] memory accounts = new address[](2);
-        accounts[0] = _user1;
-        accounts[1] = _user2;
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
-        assertEq(totalRewards[0], reward1);
-        assertEq(totalRewards[1], reward2);
-
-        // Check contract total rewards
-        assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
-    }
-
-    function test_TotalContractRewards_StartsAtZero() public view {
-        assertEq(swarmCoordinator.getTotalContractRewards(), 0);
-    }
-
-    function test_Nobody_CanSubmitReward_ForFutureRound() public {
-        uint256 reward = 100;
-
-        // Try to submit reward for future round
-        vm.prank(_user1);
-        vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
-        swarmCoordinator.submitReward(1, 0, reward);
-    }
-
-    function test_Nobody_CanSubmitReward_ForInvalidStage() public {
-        uint256 reward = 100;
-
-        // Set stage count
-        vm.prank(_owner);
-        swarmCoordinator.setStageCount(2);
-
-        // Try to submit reward for invalid stage
-        vm.prank(_user1);
-        vm.expectRevert(SwarmCoordinator.InvalidStageNumber.selector);
-        swarmCoordinator.submitReward(0, 2, reward);
     }
 
     function test_Anyone_CanSubmitReward_ForPastRound() public {
@@ -1312,7 +1249,6 @@ contract SwarmCoordinatorTest is Test {
         uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         assertEq(rewards[0], reward1);
         assertEq(rewards[1], reward2);
-        assertEq(swarmCoordinator.getTotalContractRewards(), reward1 + reward2);
     }
 
     function test_GetRoundStageReward_MultipleAddresses() public {

@@ -60,8 +60,6 @@ contract SwarmCoordinator is UUPSUpgradeable {
     mapping(uint256 => mapping(uint256 => mapping(address => bool))) private _hasSubmittedRoundStageReward;
     // Maps account address to their total rewards across all rounds
     mapping(address => uint256) private _totalRewards;
-    // Total rewards across all users
-    uint256 private _totalContractRewards;
 
     // .----------------------------------------------.
     // | ███████████            ████                  |
@@ -104,7 +102,6 @@ contract SwarmCoordinator is UUPSUpgradeable {
         address indexed account, uint256 indexed roundNumber, uint256 indexed stageNumber, uint256 reward
     );
     event CumulativeRewardsUpdated(address indexed account, uint256 totalRewards);
-    event TotalContractRewardsUpdated(uint256 totalRewards);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -707,11 +704,9 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         // Update total rewards
         _totalRewards[msg.sender] += reward;
-        _totalContractRewards += reward;
 
         emit RewardSubmitted(msg.sender, roundNumber, stageNumber, reward);
         emit CumulativeRewardsUpdated(msg.sender, _totalRewards[msg.sender]);
-        emit TotalContractRewardsUpdated(_totalContractRewards);
     }
 
     /**
@@ -759,13 +754,5 @@ contract SwarmCoordinator is UUPSUpgradeable {
             rewards[i] = _totalRewards[accounts[i]];
         }
         return rewards;
-    }
-
-    /**
-     * @dev Gets the total rewards across all users
-     * @return The total rewards submitted by all users
-     */
-    function getTotalContractRewards() external view returns (uint256) {
-        return _totalContractRewards;
     }
 }
