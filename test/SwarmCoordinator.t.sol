@@ -18,7 +18,7 @@ contract SwarmCoordinatorTest is Test {
         vm.startPrank(_owner);
         swarmCoordinator = new SwarmCoordinator();
         swarmCoordinator.initialize(_owner);
-        swarmCoordinator.setStageCount(2);
+        swarmCoordinator.setStageCount(3);
         vm.stopPrank();
     }
 
