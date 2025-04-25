@@ -709,6 +709,9 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Check if sender has already submitted a reward for this round and stage
         if (_hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender]) revert RewardAlreadySubmitted();
 
+        // Check if the peer ID belongs to the sender
+        if (_peerIdToEoa[peerId] != msg.sender) revert InvalidPeerId();
+
         // Record the reward
         _roundStageRewards[roundNumber][stageNumber][msg.sender] = reward;
         _hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender] = true;
