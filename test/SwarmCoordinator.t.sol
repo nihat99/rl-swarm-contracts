@@ -1130,8 +1130,8 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId1);
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward, peerId1);
-        vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, peerId1, reward);
         swarmCoordinator.submitReward(0, 0, reward, peerId1);
         vm.stopPrank();
 
@@ -1139,7 +1139,9 @@ contract SwarmCoordinatorTest is Test {
         address[] memory accounts = new address[](1);
         accounts[0] = _user1;
         uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        string[] memory peerIds = new string[](1);
+        peerIds[0] = peerId1;
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(rewards[0], reward);
         assertEq(totalRewards[0], reward);
         assertTrue(swarmCoordinator.hasSubmittedRoundStageReward(0, 0, _user1));
@@ -1179,15 +1181,15 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId1);
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1, peerId1);
-        vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, peerId1, reward1);
         swarmCoordinator.submitReward(0, 0, reward1, peerId1);
 
         // Submit reward in stage 1
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, 1, reward2, peerId1);
-        vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, peerId1, reward1 + reward2);
         swarmCoordinator.submitReward(0, 1, reward2, peerId1);
 
         // Verify rewards were recorded correctly
@@ -1195,7 +1197,9 @@ contract SwarmCoordinatorTest is Test {
         accounts[0] = _user1;
         uint256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         uint256[] memory rewards1 = swarmCoordinator.getRoundStageReward(0, 1, accounts);
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        string[] memory peerIds = new string[](1);
+        peerIds[0] = peerId1;
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(rewards0[0], reward1);
         assertEq(rewards1[0], reward2);
         assertEq(totalRewards[0], reward1 + reward2);
@@ -1217,8 +1221,8 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId1);
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1, peerId1);
-        vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, peerId1, reward1);
         swarmCoordinator.submitReward(0, 0, reward1, peerId1);
         vm.stopPrank();
 
@@ -1230,8 +1234,8 @@ contract SwarmCoordinatorTest is Test {
         vm.startPrank(_user1);
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.RewardSubmitted(_user1, 1, 0, reward2, peerId1);
-        vm.expectEmit(true, true, false, true);
-        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
+        vm.expectEmit(true, true, true, true);
+        emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, peerId1, reward1 + reward2);
         swarmCoordinator.submitReward(1, 0, reward2, peerId1);
 
         // Verify rewards were recorded correctly
@@ -1239,7 +1243,9 @@ contract SwarmCoordinatorTest is Test {
         accounts[0] = _user1;
         uint256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         uint256[] memory rewards1 = swarmCoordinator.getRoundStageReward(1, 0, accounts);
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        string[] memory peerIds = new string[](1);
+        peerIds[0] = peerId1;
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(rewards0[0], reward1);
         assertEq(rewards1[0], reward2);
         assertEq(totalRewards[0], reward1 + reward2);
@@ -1376,12 +1382,12 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitReward(0, 0, reward3, peerId3);
         vm.stopPrank();
 
-        // Get total rewards for multiple addresses
-        address[] memory accounts = new address[](3);
-        accounts[0] = _user1;
-        accounts[1] = _user2;
-        accounts[2] = _user;
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        // Get total rewards for multiple peer IDs
+        string[] memory peerIds = new string[](3);
+        peerIds[0] = peerId1;
+        peerIds[1] = peerId2;
+        peerIds[2] = peerId3;
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
 
         // Verify the total rewards
         assertEq(totalRewards.length, 3);
@@ -1391,8 +1397,8 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_GetTotalRewards_EmptyArray() public view {
-        address[] memory accounts = new address[](0);
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(accounts);
+        string[] memory peerIds = new string[](0);
+        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(totalRewards.length, 0);
     }
 }
