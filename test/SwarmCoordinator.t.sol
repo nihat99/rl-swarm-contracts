@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {SwarmCoordinator} from "../src/SwarmCoordinator.sol";
 
 contract SwarmCoordinatorTest is Test {
@@ -1124,13 +1124,16 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.setStageCount(2);
 
         uint256 reward = 100;
+        string memory peerId1 = "QmPeer1";
 
-        vm.prank(_user1);
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward, peerId1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward);
-        swarmCoordinator.submitReward(0, 0, reward);
+        swarmCoordinator.submitReward(0, 0, reward, peerId1);
+        vm.stopPrank();
 
         // Verify reward was recorded
         address[] memory accounts = new address[](1);
@@ -1148,40 +1151,44 @@ contract SwarmCoordinatorTest is Test {
 
         uint256 reward1 = 100;
         uint256 reward2 = 200;
+        string memory peerId1 = "QmPeer1";
 
         // First submission
-        vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
 
         // Try to submit again
-        vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.RewardAlreadySubmitted.selector);
-        swarmCoordinator.submitReward(0, 0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2, peerId1);
+        vm.stopPrank();
     }
 
     function test_Anyone_CanSubmitReward_InDifferentStages() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
+        string memory peerId1 = "QmPeer1";
+
         // Set stage count
         vm.prank(_owner);
         swarmCoordinator.setStageCount(2);
 
         // Submit reward in stage 0
-        vm.prank(_user1);
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1, peerId1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
 
         // Submit reward in stage 1
-        vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 1, reward2);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 1, reward2, peerId1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
-        swarmCoordinator.submitReward(0, 1, reward2);
+        swarmCoordinator.submitReward(0, 1, reward2, peerId1);
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
@@ -1197,6 +1204,7 @@ contract SwarmCoordinatorTest is Test {
     function test_Anyone_CanSubmitReward_InDifferentRounds() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
+        string memory peerId1 = "QmPeer1";
 
         // Set stage count and stage updater
         vm.startPrank(_owner);
@@ -1205,24 +1213,26 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
 
         // Submit reward in round 0
-        vm.prank(_user1);
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1, peerId1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+        vm.stopPrank();
 
         // Advance to next round
         vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit reward in round 1
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 1, 0, reward2);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 1, 0, reward2, peerId1);
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
-        swarmCoordinator.submitReward(1, 0, reward2);
+        swarmCoordinator.submitReward(1, 0, reward2, peerId1);
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
@@ -1239,6 +1249,9 @@ contract SwarmCoordinatorTest is Test {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+
         // Set stage count and stage updater
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
@@ -1246,16 +1259,20 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
 
         // Submit reward in round 0
-        vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+        vm.stopPrank();
 
         // Advance to next round
         vm.prank(_stageManager);
         swarmCoordinator.updateStageAndRound();
 
         // Submit reward for round 0 again (as a different user)
-        vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2);
+        vm.startPrank(_user2);
+        swarmCoordinator.registerPeer(peerId2);
+        swarmCoordinator.submitReward(0, 0, reward2, peerId2);
+        vm.stopPrank();
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](2);
@@ -1266,6 +1283,23 @@ contract SwarmCoordinatorTest is Test {
         assertEq(rewards[1], reward2);
     }
 
+    function test_Nobody_CanSubmitRewards_ForDifferentPeer() public {
+        uint256 reward1 = 100;
+
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+
+        vm.prank(_user2);
+        swarmCoordinator.registerPeer(peerId2);
+
+        vm.prank(_user1);
+        vm.expectRevert();
+        swarmCoordinator.submitReward(0, 0, reward1, peerId2);
+    }
+
     function test_GetRoundStageReward_MultipleAddresses() public {
         vm.prank(_owner);
         swarmCoordinator.setStageCount(2);
@@ -1274,13 +1308,25 @@ contract SwarmCoordinatorTest is Test {
         uint256 reward2 = 200;
         uint256 reward3 = 300;
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+        string memory peerId3 = "QmPeer3";
+
         // Submit rewards for different users
-        vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
-        vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2);
-        vm.prank(_user);
-        swarmCoordinator.submitReward(0, 0, reward3);
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
+        swarmCoordinator.registerPeer(peerId2);
+        swarmCoordinator.submitReward(0, 0, reward2, peerId2);
+        vm.stopPrank();
+
+        vm.startPrank(_user);
+        swarmCoordinator.registerPeer(peerId3);
+        swarmCoordinator.submitReward(0, 0, reward3, peerId3);
+        vm.stopPrank();
 
         // Get rewards for multiple addresses
         address[] memory accounts = new address[](3);
@@ -1310,13 +1356,25 @@ contract SwarmCoordinatorTest is Test {
         uint256 reward2 = 200;
         uint256 reward3 = 300;
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "Qmpeer2";
+        string memory peerId3 = "QmPeer3";
+
         // Submit rewards for different users
-        vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
-        vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2);
-        vm.prank(_user);
-        swarmCoordinator.submitReward(0, 0, reward3);
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
+        swarmCoordinator.registerPeer(peerId2);
+        swarmCoordinator.submitReward(0, 0, reward2, peerId2);
+        vm.stopPrank();
+
+        vm.startPrank(_user);
+        swarmCoordinator.registerPeer(peerId3);
+        swarmCoordinator.submitReward(0, 0, reward3, peerId3);
+        vm.stopPrank();
 
         // Get total rewards for multiple addresses
         address[] memory accounts = new address[](3);
