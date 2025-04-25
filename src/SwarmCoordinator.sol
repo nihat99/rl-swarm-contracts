@@ -58,8 +58,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
     mapping(uint256 => mapping(uint256 => mapping(address => uint256))) private _roundStageRewards;
     // Maps round number and stage to mapping of account address to whether they have submitted a reward
     mapping(uint256 => mapping(uint256 => mapping(address => bool))) private _hasSubmittedRoundStageReward;
-    // Maps account address to their total rewards across all rounds
-    mapping(address => uint256) private _totalRewards;
+    // Maps peer ID to their total rewards across all rounds
+    mapping(string => uint256) private _totalRewards;
 
     // .----------------------------------------------.
     // | ███████████            ████                  |
@@ -101,7 +101,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     event RewardSubmitted(
         address indexed account, uint256 indexed roundNumber, uint256 indexed stageNumber, uint256 reward, string peerId
     );
-    event CumulativeRewardsUpdated(address indexed account, uint256 totalRewards);
+    event CumulativeRewardsUpdated(address indexed account, string indexed peerId, uint256 totalRewards);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
@@ -697,7 +697,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
      * @param roundNumber The round number for which to submit the reward
      * @param stageNumber The stage number for which to submit the reward
      * @param reward The reward amount to submit
-     * @param peerId The peer ID receiving rewards
+     * @param peerId The peer ID reporting the rewards
      */
     function submitReward(uint256 roundNumber, uint256 stageNumber, uint256 reward, string calldata peerId) external {
         // Check if round number is valid (must be less than or equal to current round)
@@ -716,11 +716,11 @@ contract SwarmCoordinator is UUPSUpgradeable {
         _roundStageRewards[roundNumber][stageNumber][msg.sender] = reward;
         _hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender] = true;
 
-        // Update total rewards
-        _totalRewards[msg.sender] += reward;
+        // Update total rewards per peerId
+        _totalRewards[peerId] += reward;
 
         emit RewardSubmitted(msg.sender, roundNumber, stageNumber, reward, peerId);
-        emit CumulativeRewardsUpdated(msg.sender, _totalRewards[msg.sender]);
+        emit CumulativeRewardsUpdated(msg.sender, peerId, _totalRewards[peerId]);
     }
 
     /**
@@ -759,13 +759,13 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
     /**
      * @dev Gets the total rewards earned by accounts across all rounds
-     * @param accounts Array of addresses to query
-     * @return rewards Array of corresponding total rewards for each account
+     * @param peerIds Array of peer IDs to query
+     * @return rewards Array of corresponding total rewards for each peer ID
      */
-    function getTotalRewards(address[] calldata accounts) external view returns (uint256[] memory rewards) {
-        rewards = new uint256[](accounts.length);
-        for (uint256 i = 0; i < accounts.length; i++) {
-            rewards[i] = _totalRewards[accounts[i]];
+    function getTotalRewards(string[] calldata peerIds) external view returns (uint256[] memory rewards) {
+        rewards = new uint256[](peerIds.length);
+        for (uint256 i = 0; i < peerIds.length; i++) {
+            rewards[i] = _totalRewards[peerIds[i]];
         }
         return rewards;
     }
