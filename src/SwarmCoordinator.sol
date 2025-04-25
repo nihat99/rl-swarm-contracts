@@ -95,15 +95,13 @@ contract SwarmCoordinator is UUPSUpgradeable {
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
-    event WinnerSubmitted(
-        address indexed account, string indexed peerId, uint256 indexed roundNumber, string[] winners
-    );
+    event WinnerSubmitted(address indexed account, string peerId, uint256 indexed roundNumber, string[] winners);
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
     event RewardSubmitted(
         address indexed account, uint256 indexed roundNumber, uint256 indexed stageNumber, uint256 reward, string peerId
     );
-    event CumulativeRewardsUpdated(address indexed account, string indexed peerId, uint256 totalRewards);
+    event CumulativeRewardsUpdated(address indexed account, string peerId, uint256 totalRewards);
 
     // .----------------------------------------------------------.
     // | ██████████                                               |
