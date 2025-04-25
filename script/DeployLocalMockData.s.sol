@@ -42,32 +42,35 @@ contract DeployLocalMockData is Script {
         vm.stopBroadcast();
 
         // Register peers
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+        string memory peerId3 = "QmPeer3";
         vm.broadcast(user1.privateKey);
-        coordinator.registerPeer("QmPeer1");
+        coordinator.registerPeer(peerId1);
         vm.broadcast(user2.privateKey);
-        coordinator.registerPeer("QmPeer2");
+        coordinator.registerPeer(peerId2);
         vm.broadcast(user3.privateKey);
-        coordinator.registerPeer("QmPeer3");
+        coordinator.registerPeer(peerId3);
 
         // Submit winners for round 0
         // User 1 winners
         vm.broadcast(user1.privateKey);
         string[] memory user1Round0Winners = new string[](2);
-        user1Round0Winners[0] = "QmPeer3";
-        user1Round0Winners[1] = "QmPeer2";
-        coordinator.submitWinners(0, user1Round0Winners);
+        user1Round0Winners[0] = peerId3;
+        user1Round0Winners[1] = peerId2;
+        coordinator.submitWinners(0, user1Round0Winners, peerId1);
         // User 2 winners
         vm.broadcast(user2.privateKey);
         string[] memory user2Round0Winners = new string[](2);
-        user2Round0Winners[0] = "QmPeer1";
-        user2Round0Winners[1] = "QmPeer3";
-        coordinator.submitWinners(0, user2Round0Winners);
+        user2Round0Winners[0] = peerId1;
+        user2Round0Winners[1] = peerId3;
+        coordinator.submitWinners(0, user2Round0Winners, peerId2);
         // User 3 winners
         vm.broadcast(user3.privateKey);
         string[] memory user3Round0Winners = new string[](2);
-        user3Round0Winners[0] = "QmPeer1";
-        user3Round0Winners[1] = "QmPeer2";
-        coordinator.submitWinners(0, user3Round0Winners);
+        user3Round0Winners[0] = peerId1;
+        user3Round0Winners[1] = peerId2;
+        coordinator.submitWinners(0, user3Round0Winners, peerId3);
 
         // Advance round
         vm.broadcast(owner.privateKey);
@@ -77,24 +80,24 @@ contract DeployLocalMockData is Script {
         // User 1 winners
         vm.broadcast(user1.privateKey);
         string[] memory user1Round1Winners = new string[](3);
-        user1Round1Winners[0] = "QmPeer1";
-        user1Round1Winners[1] = "QmPeer2";
-        user1Round1Winners[2] = "QmPeer3";
-        coordinator.submitWinners(1, user1Round1Winners);
+        user1Round1Winners[0] = peerId1;
+        user1Round1Winners[1] = peerId2;
+        user1Round1Winners[2] = peerId3;
+        coordinator.submitWinners(1, user1Round1Winners, peerId1);
         // User 2 winners
         vm.broadcast(user2.privateKey);
         string[] memory user2Round1Winners = new string[](3);
-        user2Round1Winners[0] = "QmPeer1";
-        user2Round1Winners[1] = "QmPeer2";
-        user2Round1Winners[2] = "QmPeer3";
-        coordinator.submitWinners(1, user2Round1Winners);
+        user2Round1Winners[0] = peerId1;
+        user2Round1Winners[1] = peerId2;
+        user2Round1Winners[2] = peerId3;
+        coordinator.submitWinners(1, user2Round1Winners, peerId2);
         // User 3 winners
         vm.broadcast(user3.privateKey);
         string[] memory user3Round1Winners = new string[](3);
-        user3Round1Winners[0] = "QmPeer1";
-        user3Round1Winners[1] = "QmPeer2";
-        user3Round1Winners[2] = "QmPeer3";
-        coordinator.submitWinners(1, user3Round1Winners);
+        user3Round1Winners[0] = peerId1;
+        user3Round1Winners[1] = peerId2;
+        user3Round1Winners[2] = peerId3;
+        coordinator.submitWinners(1, user3Round1Winners, peerId3);
 
         // Advance round
         vm.broadcast(owner.privateKey);
@@ -104,35 +107,35 @@ contract DeployLocalMockData is Script {
         // User 1 winners
         vm.broadcast(user1.privateKey);
         string[] memory user1Round2Winners = new string[](2);
-        user1Round2Winners[0] = "QmPeer3";
-        user1Round2Winners[1] = "QmPeer2";
-        coordinator.submitWinners(2, user1Round2Winners);
+        user1Round2Winners[0] = peerId3;
+        user1Round2Winners[1] = peerId2;
+        coordinator.submitWinners(2, user1Round2Winners, peerId1);
         // User 2 winners
         vm.broadcast(user2.privateKey);
         string[] memory user2Round2Winners = new string[](2);
-        user2Round2Winners[0] = "QmPeer1";
-        user2Round2Winners[1] = "QmPeer3";
-        coordinator.submitWinners(2, user2Round2Winners);
+        user2Round2Winners[0] = peerId1;
+        user2Round2Winners[1] = peerId3;
+        coordinator.submitWinners(2, user2Round2Winners, peerId2);
 
         // Submit rewards for each round and stage
         vm.broadcast(user1.privateKey);
-        coordinator.submitReward(0, 0, 100, "QmPeer1");
+        coordinator.submitReward(0, 0, 100, peerId1);
         vm.broadcast(user2.privateKey);
-        coordinator.submitReward(0, 0, 200, "QmPeer2");
+        coordinator.submitReward(0, 0, 200, peerId2);
         vm.broadcast(user3.privateKey);
-        coordinator.submitReward(0, 0, 300, "QmPeer3");
+        coordinator.submitReward(0, 0, 300, peerId3);
 
         vm.broadcast(user1.privateKey);
-        coordinator.submitReward(1, 0, 150, "QmPeer1");
+        coordinator.submitReward(1, 0, 150, peerId1);
         vm.broadcast(user2.privateKey);
-        coordinator.submitReward(1, 0, 250, "QmPeer2");
+        coordinator.submitReward(1, 0, 250, peerId2);
         vm.broadcast(user3.privateKey);
-        coordinator.submitReward(1, 0, 350, "QmPeer3");
+        coordinator.submitReward(1, 0, 350, peerId3);
 
         vm.broadcast(user1.privateKey);
-        coordinator.submitReward(2, 0, 175, "QmPeer1");
+        coordinator.submitReward(2, 0, 175, peerId1);
         vm.broadcast(user2.privateKey);
-        coordinator.submitReward(2, 0, 275, "QmPeer2");
+        coordinator.submitReward(2, 0, 275, peerId2);
 
         // Get top winners
         (string[] memory topWinners, uint256[] memory winnerWins) = coordinator.winnerLeaderboard(0, 3);
@@ -142,7 +145,7 @@ contract DeployLocalMockData is Script {
         }
 
         // Get top voters
-        (address[] memory topVoters, uint256[] memory voterVotes) = coordinator.voterLeaderboard(0, 3);
+        (string[] memory topVoters, uint256[] memory voterVotes) = coordinator.voterLeaderboard(0, 3);
         console2.log("Top voters and their votes:");
         for (uint256 i = 0; i < topVoters.length; i++) {
             console2.log(topVoters[i], voterVotes[i]);

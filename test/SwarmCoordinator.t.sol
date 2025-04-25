@@ -210,7 +210,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(eoas[1], user2, "EOA 2 not stored correctly");
     }
 
-    function test_GetEoa_ReturnsZeroAddress_ForUnregisteredPeerId() public {
+    function test_GetEoa_ReturnsZeroAddress_ForUnregisteredPeerId() public view {
         string memory unregisteredPeerId = "unregistered";
         string[] memory peerIds = new string[](1);
         peerIds[0] = unregisteredPeerId;
@@ -372,20 +372,24 @@ contract SwarmCoordinatorTest is Test {
         winners[0] = "QmWinner1";
         winners[1] = "QmWinner2";
 
+        string memory voterPeerId = "QmVoter1";
+
         // Register peer IDs first
         vm.prank(_user1);
         swarmCoordinator.registerPeer(winners[0]);
         vm.prank(_user2);
         swarmCoordinator.registerPeer(winners[1]);
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(voterPeerId);
 
         // Submit winners for round 0
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.WinnerSubmitted(_user1, 0, winners);
-        swarmCoordinator.submitWinners(0, winners);
+        emit SwarmCoordinator.WinnerSubmitted(_user1, voterPeerId, 0, winners);
+        swarmCoordinator.submitWinners(0, winners, voterPeerId);
 
         // Verify votes
-        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, _user1);
+        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, voterPeerId);
         assertEq(voterVotes.length, 2);
         assertEq(voterVotes[0], winners[0]);
         assertEq(voterVotes[1], winners[1]);
@@ -400,14 +404,20 @@ contract SwarmCoordinatorTest is Test {
         winners[0] = "QmWinner1";
         winners[1] = "QmWinner2";
 
+        string memory voterPeerId = "QmVoter1";
+
+        // Register voter peer ID
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(voterPeerId);
+
         // Submit winners for round 0
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.WinnerSubmitted(_user1, 0, winners);
-        swarmCoordinator.submitWinners(0, winners);
+        emit SwarmCoordinator.WinnerSubmitted(_user1, voterPeerId, 0, winners);
+        swarmCoordinator.submitWinners(0, winners, voterPeerId);
 
         // Verify votes
-        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, _user1);
+        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, voterPeerId);
         assertEq(voterVotes.length, 2);
         assertEq(voterVotes[0], winners[0]);
         assertEq(voterVotes[1], winners[1]);
@@ -417,7 +427,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getPeerVoteCount(0, winners[1]), 1);
     }
 
-    function test_Nobody_CanSubmitMultipleWinner_ForSameRound() public {
+    function test_Nobody_CanSubmitSameWinner_MultipleTimesInARound() public {
         string[] memory winners = new string[](2);
         winners[0] = "QmWinner1";
         winners[1] = "QmWinner1";
@@ -429,21 +439,24 @@ contract SwarmCoordinatorTest is Test {
         // Submit winners for round 0
         vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.InvalidVote.selector);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, winners[0]);
     }
 
     function test_Nobody_CanSubmitWinners_ForFutureRound() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
+        string memory voterPeerId = "QmVoter1";
+
         // Register peer ID first
         vm.prank(_user1);
         swarmCoordinator.registerPeer(winners[0]);
+        swarmCoordinator.registerPeer(voterPeerId);
 
         // Try to submit winners for future round
         vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.InvalidRoundNumber.selector);
-        swarmCoordinator.submitWinners(1, winners);
+        swarmCoordinator.submitWinners(1, winners, voterPeerId);
     }
 
     function test_Nobody_CanVoteTwice_InSameRound() public {
@@ -456,57 +469,12 @@ contract SwarmCoordinatorTest is Test {
 
         // First vote
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, winners[0]);
 
         // Try to vote again
         vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.WinnerAlreadyVoted.selector);
-        swarmCoordinator.submitWinners(0, winners);
-    }
-
-    function test_Anyone_CanGetVoterVotes() public {
-        string[] memory winners = new string[](2);
-        winners[0] = "QmWinner1";
-        winners[1] = "QmWinner2";
-
-        // Register peer IDs first
-        vm.prank(_user1);
-        swarmCoordinator.registerPeer(winners[0]);
-        vm.prank(_user2);
-        swarmCoordinator.registerPeer(winners[1]);
-
-        // Submit winners
-        vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
-
-        // Get votes as another user
-        vm.prank(_user2);
-        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, _user1);
-
-        // Verify votes
-        assertEq(voterVotes.length, 2);
-        assertEq(voterVotes[0], winners[0]);
-        assertEq(voterVotes[1], winners[1]);
-    }
-
-    function test_Anyone_CanGetPeerVoteCount() public {
-        string[] memory winners = new string[](1);
-        winners[0] = "QmWinner1";
-
-        // Register peer ID first
-        vm.prank(_user1);
-        swarmCoordinator.registerPeer(winners[0]);
-
-        // Submit winners
-        vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
-
-        // Get vote count as another user
-        vm.prank(_user2);
-        uint256 voteCount = swarmCoordinator.getPeerVoteCount(0, winners[0]);
-
-        // Verify vote count
-        assertEq(voteCount, 1);
+        swarmCoordinator.submitWinners(0, winners, winners[0]);
     }
 
     function test_VoterVoteCount_IsTrackedCorrectly() public {
@@ -522,7 +490,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 0
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, winners[0]);
 
         // Forward to next round
         vm.startPrank(_owner);
@@ -535,11 +503,11 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 1
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(1, winners);
+        swarmCoordinator.submitWinners(1, winners, winners[0]);
 
         // Verify vote count
-        assertEq(swarmCoordinator.getVoterVoteCount(_user1), 2);
-        assertEq(swarmCoordinator.getVoterVoteCount(_user2), 0);
+        assertEq(swarmCoordinator.getVoterVoteCount(winners[0]), 2);
+        assertEq(swarmCoordinator.getVoterVoteCount(winners[1]), 0);
     }
 
     function test_VoterLeaderboard_ReturnsCorrectOrder() public {
@@ -566,7 +534,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 0
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners1);
+        swarmCoordinator.submitWinners(0, winners1, winners1[0]);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -574,7 +542,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 1
         vm.prank(_user2);
-        swarmCoordinator.submitWinners(1, winners1);
+        swarmCoordinator.submitWinners(1, winners1, winners1[1]);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -582,19 +550,19 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 2
         vm.prank(_user);
-        swarmCoordinator.submitWinners(2, winners2);
+        swarmCoordinator.submitWinners(2, winners2, winners2[0]);
 
         // Get top 3 voters
-        (address[] memory voters, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(0, 3);
+        (string[] memory peerIds, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(0, 3);
 
         // Verify order and vote counts
-        assertEq(voters.length, 3);
+        assertEq(peerIds.length, 3);
         assertEq(voteCounts.length, 3);
-        assertEq(voters[0], _user1);
+        assertEq(peerIds[0], winners1[0]);
         assertEq(voteCounts[0], 1);
-        assertEq(voters[1], _user2);
+        assertEq(peerIds[1], winners1[1]);
         assertEq(voteCounts[1], 1);
-        assertEq(voters[2], _user);
+        assertEq(peerIds[2], winners2[0]);
         assertEq(voteCounts[2], 1);
     }
 
@@ -622,7 +590,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 0
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners1);
+        swarmCoordinator.submitWinners(0, winners1, winners1[0]);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -630,7 +598,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 1
         vm.prank(_user2);
-        swarmCoordinator.submitWinners(1, winners1);
+        swarmCoordinator.submitWinners(1, winners1, winners1[1]);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -638,19 +606,19 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 2
         vm.prank(_user);
-        swarmCoordinator.submitWinners(2, winners2);
+        swarmCoordinator.submitWinners(2, winners2, winners2[0]);
 
         // Get slice from index 2 to 3
-        (address[] memory voters, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(2, 3);
-        assertEq(voters.length, 1);
+        (string[] memory peerIds, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(2, 3);
+        assertEq(peerIds.length, 1);
         assertEq(voteCounts.length, 1);
-        assertEq(voters[0], _user);
+        assertEq(peerIds[0], winners2[0]);
         assertEq(voteCounts[0], 1);
     }
 
-    function test_VoterLeaderboard_ReturnsEmptyArrays_WhenNoVoters() public {
-        (address[] memory voters, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(0, 10);
-        assertEq(voters.length, 0);
+    function test_VoterLeaderboard_ReturnsEmptyArrays_WhenNoVoters() public view {
+        (string[] memory peerIds, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(0, 10);
+        assertEq(peerIds.length, 0);
         assertEq(voteCounts.length, 0);
     }
 
@@ -662,14 +630,25 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners2 = new string[](1);
         winners2[0] = "QmWinner3";
 
-        // Register peer IDs first
-        vm.prank(_user1);
-        swarmCoordinator.registerPeer(winners1[0]);
-        vm.prank(_user2);
-        swarmCoordinator.registerPeer(winners1[1]);
-        vm.prank(_user);
-        swarmCoordinator.registerPeer(winners2[0]);
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+        string memory peerId3 = "QmPeer3";
 
+        // Register peer IDs first
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(winners1[0]);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
+        swarmCoordinator.registerPeer(winners1[1]);
+        swarmCoordinator.registerPeer(peerId2);
+        vm.stopPrank();
+
+        vm.startPrank(_user);
+        swarmCoordinator.registerPeer(winners2[0]);
+        swarmCoordinator.registerPeer(peerId3);
+        vm.stopPrank();
         // Set stage count
         vm.startPrank(_owner);
         swarmCoordinator.setStageCount(1);
@@ -678,7 +657,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 0
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners1);
+        swarmCoordinator.submitWinners(0, winners1, peerId1);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -686,7 +665,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 1
         vm.prank(_user2);
-        swarmCoordinator.submitWinners(1, winners1);
+        swarmCoordinator.submitWinners(1, winners1, peerId2);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -694,7 +673,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 2
         vm.prank(_user);
-        swarmCoordinator.submitWinners(2, winners2);
+        swarmCoordinator.submitWinners(2, winners2, peerId3);
 
         // Get top 3 winners
         (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(0, 3);
@@ -718,13 +697,25 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners2 = new string[](1);
         winners2[0] = "QmWinner3";
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+        string memory peerId3 = "QmPeer3";
+
         // Register peer IDs first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners1[0]);
-        vm.prank(_user2);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
         swarmCoordinator.registerPeer(winners1[1]);
-        vm.prank(_user);
+        swarmCoordinator.registerPeer(peerId2);
+        vm.stopPrank();
+
+        vm.startPrank(_user);
         swarmCoordinator.registerPeer(winners2[0]);
+        swarmCoordinator.registerPeer(peerId3);
+        vm.stopPrank();
 
         // Set stage count
         vm.startPrank(_owner);
@@ -734,7 +725,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 0
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners1);
+        swarmCoordinator.submitWinners(0, winners1, peerId1);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -742,7 +733,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 1
         vm.prank(_user2);
-        swarmCoordinator.submitWinners(1, winners1);
+        swarmCoordinator.submitWinners(1, winners1, peerId2);
 
         // Forward to next round
         vm.prank(_stageManager);
@@ -750,7 +741,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners for round 2
         vm.prank(_user);
-        swarmCoordinator.submitWinners(2, winners2);
+        swarmCoordinator.submitWinners(2, winners2, peerId3);
 
         // Get slice from index 2 to 3
         (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(2, 3);
@@ -764,13 +755,17 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
+        string memory peerId1 = "QmPeer1";
+
         // Register peer ID first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners[0]);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
 
         // Submit winners
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, peerId1);
 
         // Test with start > end
         vm.expectRevert("Start index must be less than or equal to end index");
@@ -789,7 +784,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(wins[0], 1);
     }
 
-    function test_WinnerLeaderboard_ReturnsEmptyArrays_WhenNoWinners() public {
+    function test_WinnerLeaderboard_ReturnsEmptyArrays_WhenNoWinners() public view {
         (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(0, 10);
         assertEq(peerIds.length, 0);
         assertEq(wins.length, 0);
@@ -816,7 +811,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit winners
         vm.prank(_user);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, "QmUser");
 
         // Get top 100 winners
         (string[] memory topWinners, uint256[] memory topWins) = swarmCoordinator.winnerLeaderboard(0, 100);
@@ -833,13 +828,13 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
 
         vm.prank(_user);
-        swarmCoordinator.submitWinners(1, topWinner);
+        swarmCoordinator.submitWinners(1, topWinner, "QmUser");
 
         vm.prank(_owner);
         swarmCoordinator.updateStageAndRound();
 
         vm.prank(_user);
-        swarmCoordinator.submitWinners(2, topWinner);
+        swarmCoordinator.submitWinners(2, topWinner, "QmUser");
 
         // New winner bubbled up the leaderboard
         (topWinners, topWins) = swarmCoordinator.winnerLeaderboard(0, 1);
@@ -852,28 +847,30 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.setStageCount(0);
 
         // Create 100 voters
-        address[] memory voters = new address[](100);
+        string[] memory voterPeerIds = new string[](100);
         for (uint256 i = 0; i < 100; i++) {
-            voters[i] = makeAddr(string(abi.encodePacked("voter", i)));
+            voterPeerIds[i] = string(abi.encodePacked("QmVoter", i));
+            vm.prank(_user);
+            swarmCoordinator.registerPeer(voterPeerIds[i]);
         }
 
         // Register a peer for voting
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
-        vm.prank(_user);
-        swarmCoordinator.registerPeer(winners[0]);
+        // vm.prank(_user);
+        // swarmCoordinator.registerPeer(winners[0]);
 
         // Have each voter vote once
         for (uint256 i = 0; i < 100; i++) {
-            vm.prank(voters[i]);
-            swarmCoordinator.submitWinners(0, winners);
+            vm.prank(_user);
+            swarmCoordinator.submitWinners(0, winners, voterPeerIds[i]);
         }
 
         // Get top 100 voters
-        (address[] memory topVoters, uint256[] memory topVoteCounts) = swarmCoordinator.voterLeaderboard(0, 100);
+        (string[] memory topVoters, uint256[] memory topVoteCounts) = swarmCoordinator.voterLeaderboard(0, 100);
         assertEq(topVoters.length, 100);
         for (uint256 i = 0; i < 100; i++) {
-            assertEq(topVoters[i], voters[i]);
+            assertEq(topVoters[i], voterPeerIds[i]);
             assertEq(swarmCoordinator.getVoterVoteCount(topVoters[i]), 1);
         }
 
@@ -882,21 +879,24 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
 
         // Add two more votes for a new voter
-        address newVoter = makeAddr("newVoter");
-        vm.prank(newVoter);
-        swarmCoordinator.submitWinners(1, winners);
+        string memory newVoterPeerId = "QmNewVoter";
+        vm.prank(_user);
+        swarmCoordinator.registerPeer(newVoterPeerId);
+
+        vm.prank(_user);
+        swarmCoordinator.submitWinners(1, winners, newVoterPeerId);
 
         // Advance to next round
         vm.prank(_owner);
         swarmCoordinator.updateStageAndRound();
 
-        vm.prank(newVoter);
-        swarmCoordinator.submitWinners(2, winners);
+        vm.prank(_user);
+        swarmCoordinator.submitWinners(2, winners, newVoterPeerId);
 
         // New voter should bubble up the leaderboard
         (topVoters, topVoteCounts) = swarmCoordinator.voterLeaderboard(0, 1);
-        assertEq(topVoters[0], newVoter);
-        assertEq(swarmCoordinator.getVoterVoteCount(newVoter), 2);
+        assertEq(topVoters[0], newVoterPeerId);
+        assertEq(swarmCoordinator.getVoterVoteCount(newVoterPeerId), 2);
     }
 
     function test_UniqueVoters_StartsAtZero() public view {
@@ -913,7 +913,7 @@ contract SwarmCoordinatorTest is Test {
 
         // First vote should increment unique voters
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, winners[0]);
         assertEq(swarmCoordinator.uniqueVoters(), 1);
     }
 
@@ -924,13 +924,17 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
+        string memory peerId1 = "QmPeer1";
+
         // Register peer ID first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners[0]);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
 
         // First vote should increment unique voters
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, peerId1);
         assertEq(swarmCoordinator.uniqueVoters(), 1);
 
         // Advance to next round
@@ -939,7 +943,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Second vote from same voter should not increment
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(1, winners);
+        swarmCoordinator.submitWinners(1, winners, peerId1);
         assertEq(swarmCoordinator.uniqueVoters(), 1);
     }
 
@@ -950,20 +954,28 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners2 = new string[](1);
         winners2[0] = "QmWinner2";
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+
         // Register peer ID first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners1[0]);
-        vm.prank(_user2);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
         swarmCoordinator.registerPeer(winners2[0]);
+        swarmCoordinator.registerPeer(peerId2);
+        vm.stopPrank();
 
         // First vote should increment unique voters
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners1);
+        swarmCoordinator.submitWinners(0, winners1, peerId1);
         assertEq(swarmCoordinator.uniqueVoters(), 1);
 
         // Second vote from different voter should increment
         vm.prank(_user2);
-        swarmCoordinator.submitWinners(0, winners2);
+        swarmCoordinator.submitWinners(0, winners2, peerId2);
         assertEq(swarmCoordinator.uniqueVoters(), 2);
     }
 
@@ -971,9 +983,13 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
+        string memory peerId1 = "QmPeer1";
+
         // Register peer ID first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners[0]);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
 
         // Set stage count and stage updater
         vm.startPrank(_owner);
@@ -983,7 +999,7 @@ contract SwarmCoordinatorTest is Test {
 
         // First vote should increment unique voters
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, peerId1);
         assertEq(swarmCoordinator.uniqueVoters(), 1);
 
         // Advance to next round
@@ -992,7 +1008,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Vote in next round should not increment
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(1, winners);
+        swarmCoordinator.submitWinners(1, winners, peerId1);
         assertEq(swarmCoordinator.uniqueVoters(), 1);
     }
 
@@ -1010,7 +1026,7 @@ contract SwarmCoordinatorTest is Test {
 
         // First vote should increment unique voted peers
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, winners[0]);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
     }
 
@@ -1018,18 +1034,23 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
-        // Register peer ID first
-        vm.prank(_user1);
-        swarmCoordinator.registerPeer(winners[0]);
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
 
+        // Register peer ID first
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(winners[0]);
+        swarmCoordinator.registerPeer(peerId1);
+        swarmCoordinator.registerPeer(peerId2);
+        vm.stopPrank();
         // First vote should increment unique voted peers
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, peerId1);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
 
         // Second vote for same peer should not increment
-        vm.prank(_user2);
-        swarmCoordinator.submitWinners(0, winners);
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners, peerId2);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
     }
 
@@ -1039,20 +1060,28 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners2 = new string[](1);
         winners2[0] = "QmWinner2";
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+
         // Register peer IDs first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners1[0]);
-        vm.prank(_user2);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
         swarmCoordinator.registerPeer(winners2[0]);
+        swarmCoordinator.registerPeer(peerId2);
+        vm.stopPrank();
 
         // First vote should increment unique voted peers
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners1);
+        swarmCoordinator.submitWinners(0, winners1, peerId1);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
 
         // Second vote for different peer should increment
         vm.prank(_user2);
-        swarmCoordinator.submitWinners(0, winners2);
+        swarmCoordinator.submitWinners(0, winners2, peerId2);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
     }
 
@@ -1063,13 +1092,17 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
+        string memory peerId1 = "QmPeer1";
+
         // Register peer ID first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners[0]);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
 
         // First vote should increment unique voted peers
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners);
+        swarmCoordinator.submitWinners(0, winners, peerId1);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
 
         // Advance to next round
@@ -1077,8 +1110,8 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
 
         // Vote in next round should not increment since peer was already voted on
-        vm.prank(_user2);
-        swarmCoordinator.submitWinners(1, winners);
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(1, winners, peerId1);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
     }
 
@@ -1091,15 +1124,23 @@ contract SwarmCoordinatorTest is Test {
         string[] memory winners2 = new string[](1);
         winners2[0] = "QmWinner2";
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+
         // Register peer IDs first
-        vm.prank(_user1);
+        vm.startPrank(_user1);
         swarmCoordinator.registerPeer(winners1[0]);
-        vm.prank(_user2);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
         swarmCoordinator.registerPeer(winners2[0]);
+        swarmCoordinator.registerPeer(peerId2);
+        vm.stopPrank();
 
         // First vote should increment unique voted peers
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(0, winners1);
+        swarmCoordinator.submitWinners(0, winners1, peerId1);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
 
         // Advance to next round
@@ -1108,14 +1149,14 @@ contract SwarmCoordinatorTest is Test {
 
         // Vote for a different peer in next round should increment
         vm.prank(_user2);
-        swarmCoordinator.submitWinners(1, winners2);
+        swarmCoordinator.submitWinners(1, winners2, peerId2);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
 
         // Vote for first peer again in next round should not increment
         vm.prank(_owner);
         swarmCoordinator.updateStageAndRound();
         vm.prank(_user1);
-        swarmCoordinator.submitWinners(2, winners1);
+        swarmCoordinator.submitWinners(2, winners1, peerId1);
         assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
     }
 

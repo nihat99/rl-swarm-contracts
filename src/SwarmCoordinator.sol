@@ -39,13 +39,13 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // Maximum number of top winners to track
     uint256 private constant MAX_TOP_WINNERS = 100;
     // Maps round number to mapping of voter address to their voted peer IDs
-    mapping(uint256 => mapping(address => string[])) private _roundVotes;
+    mapping(uint256 => mapping(string => string[])) private _roundVotes;
     // Maps round number to mapping of peer ID to number of votes received
     mapping(uint256 => mapping(string => uint256)) private _roundVoteCounts;
     // Maps voter address to number of times they have voted
-    mapping(address => uint256) private _voterVoteCounts;
+    mapping(string => uint256) private _voterVoteCounts;
     // Array of top voters (sorted by number of votes)
-    address[] private _topVoters;
+    string[] private _topVoters;
     // Number of unique voters who have participated
     uint256 private _uniqueVoters;
     // Number of unique peers that have been voted on
@@ -95,7 +95,9 @@ contract SwarmCoordinator is UUPSUpgradeable {
     event BootnodesAdded(address indexed manager, uint256 count);
     event BootnodeRemoved(address indexed manager, uint256 index);
     event AllBootnodesCleared(address indexed manager);
-    event WinnerSubmitted(address indexed voter, uint256 indexed roundNumber, string[] winners);
+    event WinnerSubmitted(
+        address indexed account, string indexed peerId, uint256 indexed roundNumber, string[] winners
+    );
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
     event RewardSubmitted(
@@ -119,7 +121,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     error InvalidRoundNumber();
     error WinnerAlreadyVoted();
     error PeerIdAlreadyRegistered();
-    error InvalidPeerId();
+    error InvalidVoterPeerId();
     error OnlyOwner();
     error OnlyBootnodeManager();
     error OnlyStageManager();
@@ -420,13 +422,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
      * @dev Submits a list of winners for a specific round
      * @param roundNumber The round number for which to submit the winners
      * @param winners The list of peer IDs that should win
+     * @param peerId The peer ID of the voter
      */
-    function submitWinners(uint256 roundNumber, string[] memory winners) external {
+    function submitWinners(uint256 roundNumber, string[] memory winners, string calldata peerId) external {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
         // Check if sender has already voted
-        if (_roundVotes[roundNumber][msg.sender].length > 0) revert WinnerAlreadyVoted();
+        if (_roundVotes[roundNumber][peerId].length > 0) revert WinnerAlreadyVoted();
+
+        // Check if the peer ID belongs to the sender
+        if (_peerIdToEoa[peerId] != msg.sender) revert InvalidVoterPeerId();
 
         // Check for duplicate winners
         for (uint256 i = 0; i < winners.length; i++) {
@@ -437,13 +443,13 @@ contract SwarmCoordinator is UUPSUpgradeable {
             }
         }
 
-        // If this is the first time this address has voted, increment unique voters
-        if (_voterVoteCounts[msg.sender] == 0) {
+        // If this is the first time this peer has voted, increment unique voters
+        if (_voterVoteCounts[peerId] == 0) {
             _uniqueVoters++;
         }
 
         // Record the vote
-        _roundVotes[roundNumber][msg.sender] = winners;
+        _roundVotes[roundNumber][peerId] = winners;
 
         // Update vote counts and track unique voted peers
         for (uint256 i = 0; i < winners.length; i++) {
@@ -456,8 +462,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
         }
 
         // Update how many times each voter has voted
-        _voterVoteCounts[msg.sender]++;
-        _updateTopVoters(msg.sender);
+        _voterVoteCounts[peerId]++;
+        _updateTopVoters(peerId);
 
         // Update total wins and top winners
         for (uint256 i = 0; i < winners.length; i++) {
@@ -465,20 +471,20 @@ contract SwarmCoordinator is UUPSUpgradeable {
             _updateTopWinners(winners[i]);
         }
 
-        emit WinnerSubmitted(msg.sender, roundNumber, winners);
+        emit WinnerSubmitted(msg.sender, peerId, roundNumber, winners);
     }
 
     /**
      * @dev Updates the top voters list when a voter's score changes
-     * @param voter The address whose score has changed
+     * @param voter The peer ID whose score has changed
      */
-    function _updateTopVoters(address voter) internal {
+    function _updateTopVoters(string memory voter) internal {
         uint256 voterVotes = _voterVoteCounts[voter];
 
         // Find if voter is already in the list
         uint256 currentIndex = type(uint256).max;
         for (uint256 i = 0; i < _topVoters.length; i++) {
-            if (_topVoters[i] == voter) {
+            if (keccak256(bytes(_topVoters[i])) == keccak256(bytes(voter))) {
                 currentIndex = i;
                 break;
             }
@@ -506,7 +512,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Move voter up in the list if needed
         while (currentIndex > 0 && _voterVoteCounts[_topVoters[currentIndex - 1]] < voterVotes) {
             // Swap with previous position
-            address temp = _topVoters[currentIndex - 1];
+            string memory temp = _topVoters[currentIndex - 1];
             _topVoters[currentIndex - 1] = _topVoters[currentIndex];
             _topVoters[currentIndex] = temp;
             currentIndex--;
@@ -560,24 +566,24 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
     /**
      * @dev Gets the number of times a voter has voted
-     * @param voter The address of the voter
+     * @param peerId The peer ID of the voter
      * @return The number of times the voter has voted
      */
-    function getVoterVoteCount(address voter) external view returns (uint256) {
-        return _voterVoteCounts[voter];
+    function getVoterVoteCount(string calldata peerId) external view returns (uint256) {
+        return _voterVoteCounts[peerId];
     }
 
     /**
      * @dev Gets a slice of the voter leaderboard
      * @param start The starting index (inclusive)
      * @param end The ending index (exclusive)
-     * @return voters Array of addresses sorted by number of votes (descending)
+     * @return peerIds Array of peer IDs sorted by number of votes (descending)
      * @return voteCounts Array of corresponding vote counts
      */
     function voterLeaderboard(uint256 start, uint256 end)
         external
         view
-        returns (address[] memory voters, uint256[] memory voteCounts)
+        returns (string[] memory peerIds, uint256[] memory voteCounts)
     {
         // Ensure start is not greater than end
         require(start <= end, "Start index must be less than or equal to end index");
@@ -594,17 +600,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         // Create result arrays with the correct size
         uint256 length = end - start;
-        voters = new address[](length);
+        peerIds = new string[](length);
         voteCounts = new uint256[](length);
 
         // Fill the arrays
         for (uint256 i = start; i < end; i++) {
             uint256 index = i - start;
-            voters[index] = _topVoters[i];
+            peerIds[index] = _topVoters[i];
             voteCounts[index] = _voterVoteCounts[_topVoters[i]];
         }
 
-        return (voters, voteCounts);
+        return (peerIds, voteCounts);
     }
 
     /**
@@ -617,13 +623,13 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
-     * @dev Gets the votes for a specific round from a specific voter
+     * @dev Gets the votes for a specific round from a specific peer ID
      * @param roundNumber The round number to query
-     * @param voter The address of the voter
+     * @param peerId The peer ID of the voter
      * @return Array of peer IDs that the voter voted for
      */
-    function getVoterVotes(uint256 roundNumber, address voter) external view returns (string[] memory) {
-        return _roundVotes[roundNumber][voter];
+    function getVoterVotes(uint256 roundNumber, string calldata peerId) external view returns (string[] memory) {
+        return _roundVotes[roundNumber][peerId];
     }
 
     /**
@@ -710,7 +716,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
         if (_hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender]) revert RewardAlreadySubmitted();
 
         // Check if the peer ID belongs to the sender
-        if (_peerIdToEoa[peerId] != msg.sender) revert InvalidPeerId();
+        if (_peerIdToEoa[peerId] != msg.sender) revert InvalidVoterPeerId();
 
         // Record the reward
         _roundStageRewards[roundNumber][stageNumber][msg.sender] = reward;
