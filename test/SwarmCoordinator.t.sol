@@ -1308,13 +1308,25 @@ contract SwarmCoordinatorTest is Test {
         uint256 reward2 = 200;
         uint256 reward3 = 300;
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
+        string memory peerId3 = "QmPeer3";
+
         // Submit rewards for different users
-        vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer1");
-        vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2, "QmPeer2");
-        vm.prank(_user);
-        swarmCoordinator.submitReward(0, 0, reward3, "QmPeer3");
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
+        swarmCoordinator.registerPeer(peerId2);
+        swarmCoordinator.submitReward(0, 0, reward2, peerId2);
+        vm.stopPrank();
+
+        vm.startPrank(_user);
+        swarmCoordinator.registerPeer(peerId3);
+        swarmCoordinator.submitReward(0, 0, reward3, peerId3);
+        vm.stopPrank();
 
         // Get rewards for multiple addresses
         address[] memory accounts = new address[](3);
@@ -1344,13 +1356,25 @@ contract SwarmCoordinatorTest is Test {
         uint256 reward2 = 200;
         uint256 reward3 = 300;
 
+        string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "Qmpeer2";
+        string memory peerId3 = "QmPeer3";
+
         // Submit rewards for different users
-        vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer1");
-        vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2, "QmPeer2");
-        vm.prank(_user);
-        swarmCoordinator.submitReward(0, 0, reward3, "QmPeer3");
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+        vm.stopPrank();
+
+        vm.startPrank(_user2);
+        swarmCoordinator.registerPeer(peerId2);
+        swarmCoordinator.submitReward(0, 0, reward2, peerId2);
+        vm.stopPrank();
+
+        vm.startPrank(_user);
+        swarmCoordinator.registerPeer(peerId3);
+        swarmCoordinator.submitReward(0, 0, reward3, peerId3);
+        vm.stopPrank();
 
         // Get total rewards for multiple addresses
         address[] memory accounts = new address[](3);
