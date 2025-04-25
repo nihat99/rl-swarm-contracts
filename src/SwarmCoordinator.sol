@@ -99,7 +99,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);
     event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);
     event RewardSubmitted(
-        address indexed account, uint256 indexed roundNumber, uint256 indexed stageNumber, uint256 reward
+        address indexed account, uint256 indexed roundNumber, uint256 indexed stageNumber, uint256 reward, string peerId
     );
     event CumulativeRewardsUpdated(address indexed account, uint256 totalRewards);
 
@@ -697,8 +697,9 @@ contract SwarmCoordinator is UUPSUpgradeable {
      * @param roundNumber The round number for which to submit the reward
      * @param stageNumber The stage number for which to submit the reward
      * @param reward The reward amount to submit
+     * @param peerId The peer ID receiving rewards
      */
-    function submitReward(uint256 roundNumber, uint256 stageNumber, uint256 reward) external {
+    function submitReward(uint256 roundNumber, uint256 stageNumber, uint256 reward, string calldata peerId) external {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
@@ -715,7 +716,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Update total rewards
         _totalRewards[msg.sender] += reward;
 
-        emit RewardSubmitted(msg.sender, roundNumber, stageNumber, reward);
+        emit RewardSubmitted(msg.sender, roundNumber, stageNumber, reward, peerId);
         emit CumulativeRewardsUpdated(msg.sender, _totalRewards[msg.sender]);
     }
 

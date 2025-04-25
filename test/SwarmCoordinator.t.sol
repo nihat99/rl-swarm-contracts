@@ -1127,10 +1127,10 @@ contract SwarmCoordinatorTest is Test {
 
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward, "QmPeer");
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward);
-        swarmCoordinator.submitReward(0, 0, reward);
+        swarmCoordinator.submitReward(0, 0, reward, "QmPeer");
 
         // Verify reward was recorded
         address[] memory accounts = new address[](1);
@@ -1151,12 +1151,12 @@ contract SwarmCoordinatorTest is Test {
 
         // First submission
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer");
 
         // Try to submit again
         vm.prank(_user1);
         vm.expectRevert(SwarmCoordinator.RewardAlreadySubmitted.selector);
-        swarmCoordinator.submitReward(0, 0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2, "QmPeer");
     }
 
     function test_Anyone_CanSubmitReward_InDifferentStages() public {
@@ -1170,18 +1170,18 @@ contract SwarmCoordinatorTest is Test {
         // Submit reward in stage 0
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1, "QmPeer");
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer");
 
         // Submit reward in stage 1
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 1, reward2);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 1, reward2, "QmPeer");
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
-        swarmCoordinator.submitReward(0, 1, reward2);
+        swarmCoordinator.submitReward(0, 1, reward2, "QmPeer");
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
@@ -1207,10 +1207,10 @@ contract SwarmCoordinatorTest is Test {
         // Submit reward in round 0
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 0, 0, reward1, "QmPeer");
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer");
 
         // Advance to next round
         vm.prank(_stageManager);
@@ -1219,10 +1219,10 @@ contract SwarmCoordinatorTest is Test {
         // Submit reward in round 1
         vm.prank(_user1);
         vm.expectEmit(true, true, true, true);
-        emit SwarmCoordinator.RewardSubmitted(_user1, 1, 0, reward2);
+        emit SwarmCoordinator.RewardSubmitted(_user1, 1, 0, reward2, "QmPeer");
         vm.expectEmit(true, true, false, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, reward1 + reward2);
-        swarmCoordinator.submitReward(1, 0, reward2);
+        swarmCoordinator.submitReward(1, 0, reward2, "QmPeer");
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
@@ -1247,7 +1247,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit reward in round 0
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer");
 
         // Advance to next round
         vm.prank(_stageManager);
@@ -1255,7 +1255,7 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit reward for round 0 again (as a different user)
         vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2, "QmPeer");
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](2);
@@ -1276,11 +1276,11 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit rewards for different users
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer1");
         vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2, "QmPeer2");
         vm.prank(_user);
-        swarmCoordinator.submitReward(0, 0, reward3);
+        swarmCoordinator.submitReward(0, 0, reward3, "QmPeer3");
 
         // Get rewards for multiple addresses
         address[] memory accounts = new address[](3);
@@ -1312,11 +1312,11 @@ contract SwarmCoordinatorTest is Test {
 
         // Submit rewards for different users
         vm.prank(_user1);
-        swarmCoordinator.submitReward(0, 0, reward1);
+        swarmCoordinator.submitReward(0, 0, reward1, "QmPeer1");
         vm.prank(_user2);
-        swarmCoordinator.submitReward(0, 0, reward2);
+        swarmCoordinator.submitReward(0, 0, reward2, "QmPeer2");
         vm.prank(_user);
-        swarmCoordinator.submitReward(0, 0, reward3);
+        swarmCoordinator.submitReward(0, 0, reward3, "QmPeer3");
 
         // Get total rewards for multiple addresses
         address[] memory accounts = new address[](3);
