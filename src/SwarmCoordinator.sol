@@ -499,13 +499,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
             }
         }
 
-        // Move voter up in the list if needed
+        // Find our how far we need to move the voter up in the list
+        uint256 initialIndex = currentIndex;
         while (currentIndex > 0 && _voterVoteCounts[_topVoters[currentIndex - 1]] < voterVotes) {
-            // Swap with previous position
-            string memory temp = _topVoters[currentIndex - 1];
-            _topVoters[currentIndex - 1] = _topVoters[currentIndex];
-            _topVoters[currentIndex] = temp;
             currentIndex--;
+        }
+
+        // Swap if voter moved up in the list
+        if (currentIndex != initialIndex) {
+            string memory temp = _topVoters[currentIndex];
+            _topVoters[currentIndex] = _topVoters[initialIndex];
+            _topVoters[initialIndex] = temp;
         }
     }
 
@@ -544,13 +548,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
             }
         }
 
-        // Move winner up in the list if needed
+        // Find our how far we need to move the voter up in the list
+        uint256 initialIndex = currentIndex;
         while (currentIndex > 0 && _totalWins[_topWinners[currentIndex - 1]] < winnerWins) {
-            // Swap with previous position
-            string memory temp = _topWinners[currentIndex - 1];
-            _topWinners[currentIndex - 1] = _topWinners[currentIndex];
-            _topWinners[currentIndex] = temp;
             currentIndex--;
+        }
+
+        // Swap if winner moved up in the list
+        if (currentIndex != initialIndex) {
+            string memory temp = _topWinners[currentIndex];
+            _topWinners[currentIndex] = _topWinners[initialIndex];
+            _topWinners[initialIndex] = temp;
         }
     }
 
