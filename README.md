@@ -51,7 +51,7 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 #### Register your peer
 
 ```solidity
-function registerPeer(bytes calldata peerId) external
+function registerPeer(string calldata peerId) external
 ```
 
 #### View current round and stage
@@ -64,20 +64,20 @@ function currentStage() external view returns (uint256)
 #### Check total wins
 
 ```solidity
-function getTotalWins(address account) external view returns (uint256)
+function getTotalWins(string calldata peerId) external view returns (uint256)
 ```
 
 #### View the leaderboard
 
 ```solidity
 function winnerLeaderboard(uint256 start, uint256 end) external view returns (string[] memory peerIds, uint256[] memory wins)
-function voterLeaderboard(uint256 start, uint256 end) external view returns (address[] memory voters, uint256[] memory voteCounts)
+function voterLeaderboard(uint256 start, uint256 end) external view returns (string[] memory peerIds, uint256[] memory voteCounts)
 ```
 
 Returns slices of the leaderboards:
 
 - `winnerLeaderboard`: Returns peer IDs and their win counts, sorted by number of wins (descending)
-- `voterLeaderboard`: Returns voter addresses and their vote counts, sorted by number of votes (descending)
+- `voterLeaderboard`: Returns peer IDs and their vote counts, sorted by number of votes (descending)
 
 Both leaderboards track up to 100 top entries. The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end).
 
@@ -100,7 +100,7 @@ Returns the total number of unique peer IDs that have received votes across all 
 #### Get peer and EOA mappings
 
 ```solidity
-function getPeerId(address[] calldata eoas) external view returns (string[] memory)
+function getPeerId(address[] calldata eoas) external view returns (string[][] memory)
 function getEoa(string[] calldata peerIds) external view returns (address[] memory)
 ```
 
@@ -109,8 +109,8 @@ Get peer IDs for multiple EOAs or EOAs for multiple peer IDs.
 #### Get voting information
 
 ```solidity
-function getVoterVoteCount(address voter) external view returns (uint256)
-function getVoterVotes(uint256 roundNumber, address voter) external view returns (string[] memory)
+function getVoterVoteCount(string calldata peerId) external view returns (uint256)
+function getVoterVotes(uint256 roundNumber, string calldata peerId) external view returns (string[] memory)
 function getPeerVoteCount(uint256 roundNumber, string calldata peerId) external view returns (uint256)
 ```
 
@@ -127,7 +127,6 @@ Get detailed voting information including:
 Manages contract configuration and roles.
 
 ```solidity
-function setStageCount(uint256 stageCount_)
 function grantRole(bytes32 role, address account)
 function revokeRole(bytes32 role, address account)
 ```
