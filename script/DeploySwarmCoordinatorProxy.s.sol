@@ -23,6 +23,7 @@ contract DeploySwarmCoordinatorProxy is Script {
 
     function run() public {
         vm.startBroadcast(deployer.privateKey);
+
         swarmCoordinator_implementation = new SwarmCoordinator();
         swarmCoordinator_implementation.initialize(deployer.addr);
 
@@ -30,7 +31,6 @@ contract DeploySwarmCoordinatorProxy is Script {
         proxy = new ERC1967Proxy(address(swarmCoordinator_implementation), initializeCallData);
 
         swarmCoordinator = SwarmCoordinator(address(proxy));
-        swarmCoordinator.setStageCount(3);
 
         vm.stopBroadcast();
 

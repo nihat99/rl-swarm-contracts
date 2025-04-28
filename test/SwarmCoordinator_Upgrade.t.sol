@@ -28,24 +28,17 @@ contract SwarmCoordinatorUpgradeTest is Test {
 
     function test_DeployedSuccessfully() public {
         vm.startPrank(_owner);
-        swarmCoordinator.setStageCount(10);
-        assertEq(swarmCoordinator.stageCount(), 10);
+        assertEq(swarmCoordinator.stageCount(), 3);
         vm.stopPrank();
     }
 
     function test_Owner_Can_Upgrade() public {
         SwarmCoordinator newImplementation = new SwarmCoordinator();
 
-        vm.prank(_owner);
-        swarmCoordinator.setStageCount(10);
-
         vm.startPrank(_owner);
         UUPSUpgradeable proxyLocation = UUPSUpgradeable(address(swarmCoordinator));
         proxyLocation.upgradeToAndCall(address(newImplementation), "");
         vm.stopPrank();
-
-        // Check that the stage count is still the same
-        assertEq(swarmCoordinator.stageCount(), 10);
     }
 
     function test_NonOwner_Cannot_Upgrade() public {

@@ -25,7 +25,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // Current stage within the round
     uint256 _currentStage = 0;
     // Total number of stages in a round
-    uint256 _stageCount = 0;
+    uint256 constant _stageCount = 3;
     // Maps EOA addresses to their corresponding peer IDs
     mapping(address => string[]) _eoaToPeerId;
     // Maps peer IDs to their corresponding EOA addresses
@@ -247,18 +247,10 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
-     * @dev Sets the total number of stages in a round
-     * @param stageCount_ New total number of stages
-     */
-    function setStageCount(uint256 stageCount_) public onlyOwner {
-        _stageCount = stageCount_;
-    }
-
-    /**
      * @dev Returns the total number of stages in a round
      * @return Number of stages
      */
-    function stageCount() public view returns (uint256) {
+    function stageCount() public pure returns (uint256) {
         return _stageCount;
     }
 

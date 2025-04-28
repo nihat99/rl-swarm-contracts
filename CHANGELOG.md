@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Relationship PeerID (many) to EOA (one) [PR#28](https://github.com/gensyn-ai/rl-swarm-contracts/pull/28)
+- Hardcode 3 stages instead of having a configurable number
 
 ### Deprecated
 

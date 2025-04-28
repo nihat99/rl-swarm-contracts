@@ -16,7 +16,6 @@ contract DeploySwarmCoordinator is Script {
     function run() public {
         vm.startBroadcast(deployerPrivateKey);
         coordinator = new SwarmCoordinator();
-        coordinator.setStageCount(3);
         vm.stopBroadcast();
 
         console2.log("SwarmCoordinator deployed at:", address(coordinator));
