@@ -32,8 +32,9 @@ contract SwarmCoordinatorTest is Test {
         assertEq(stageCount, swarmCoordinator.stageCount());
     }
 
-    function test_Nobody_CanSetStageCount_Successfully(uint256 stageCount) public {
+    function test_NonOwner_CannotSetStageCount_Successfully(uint256 stageCount) public {
         vm.expectRevert();
+        vm.prank(_nonUser);
         swarmCoordinator.setStageCount(stageCount);
     }
 
