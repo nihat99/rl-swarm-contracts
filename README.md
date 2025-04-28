@@ -17,7 +17,7 @@ This repository contains the smart contracts for the RL Swarm project, focusing 
 
 ## Overview
 
-The main contract `SwarmCoordinator` manages a round-based system for coordinating swarm participants, tracking winners, and managing bootnode infrastructure. The contract includes features for:
+The main contract `SwarmCoordinator` manages a round-based system for coordinating swarm participants, tracking winners, reporting rewards, and managing bootnode infrastructure. The contract includes features for:
 
 - Round and stage management
 - Peer registration and tracking
@@ -25,39 +25,6 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 - Winner submission and reward tracking
 - Unique voter tracking across rounds
 - Unique voted peer tracking across rounds
-
-## Contract Architecture
-
-### Key Components
-
-1. **Stage and Round Management**
-   - Rounds progress through multiple stages
-   - Stages are advanced by a designated stage updater
-   - No time-based duration checks for stage progression
-
-2. **Peer Management**
-   - Users can register their peer IDs by linking them to their EOA
-   - EOA addresses are linked to peer IDs (permission-less for now)
-
-3. **Bootnode Infrastructure**
-   - Managed by a designated bootnode manager
-   - Supports adding, removing, and listing bootnodes
-   - Helps maintain network connectivity
-
-4. **Winner Management**
-   - Designated winner manager can submit winners for each round
-   - Tracks accrued rewards per participant
-   - Prevents duplicate winner submissions
-
-5. **Voter Tracking**
-   - Tracks unique voters across all rounds
-   - Counts each address only once, regardless of how many times they vote
-   - Provides total count of unique participants
-
-6. **Voted Peer Tracking**
-   - Tracks unique peers that have received votes
-   - Counts each peer only once, regardless of how many times they are voted for
-   - Provides total count of unique peers that have been voted on
 
 ## Roles
 
