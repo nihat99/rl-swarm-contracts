@@ -131,6 +131,25 @@ function grantRole(bytes32 role, address account)
 function revokeRole(bytes32 role, address account)
 ```
 
+The deployer of the contract is automatically granted the roles:
+
+- `OWNER_ROLE`
+- `STAGE_MANAGER_ROLE`
+- `BOOTNODE_MANAGER_ROLE`
+
+To grant a role to a new account, the owner can call `grantRole` with:
+
+- `role`: The role identifier (e.g., `OWNER_ROLE`, `STAGE_MANAGER_ROLE`, `BOOTNODE_MANAGER_ROLE`)
+- `account`: The address to grant the role to
+
+For example, to grant the STAGE_MANAGER_ROLE to an address:
+
+```solidity
+grantRole(STAGE_MANAGER_ROLE, 0x1234...5678)
+```
+
+Roles can be revoked using `revokeRole` with the same parameters.
+
 #### Stage Manager
 
 Advances stages and rounds.

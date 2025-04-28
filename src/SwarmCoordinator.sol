@@ -737,9 +737,9 @@ contract SwarmCoordinator is UUPSUpgradeable {
     function getRoundStageReward(uint256 roundNumber, uint256 stageNumber, address[] calldata accounts)
         external
         view
-        returns (uint256[] memory rewards)
+        returns (uint256[] memory)
     {
-        rewards = new uint256[](accounts.length);
+        uint256[] memory rewards = new uint256[](accounts.length);
         for (uint256 i = 0; i < accounts.length; i++) {
             rewards[i] = _roundStageRewards[roundNumber][stageNumber][accounts[i]];
         }
@@ -766,8 +766,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
      * @param peerIds Array of peer IDs to query
      * @return rewards Array of corresponding total rewards for each peer ID
      */
-    function getTotalRewards(string[] calldata peerIds) external view returns (uint256[] memory rewards) {
-        rewards = new uint256[](peerIds.length);
+    function getTotalRewards(string[] calldata peerIds) external view returns (uint256[] memory) {
+        uint256[] memory rewards = new uint256[](peerIds.length);
         for (uint256 i = 0; i < peerIds.length; i++) {
             rewards[i] = _totalRewards[peerIds[i]];
         }
