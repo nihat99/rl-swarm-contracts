@@ -35,12 +35,12 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
     }
 
-    function test_Anyone_CanQuery_CurrentRound() public view {
+    function test_Anyone_CanQuery_CurrentRound_Successfully() public view {
         uint256 currentRound = swarmCoordinator.currentRound();
         assertEq(currentRound, 0);
     }
 
-    function test_Owner_Can_AdvanceStage() public {
+    function test_Owner_CanAdvanceStage_Successfully() public {
         uint256 startingStage = uint256(swarmCoordinator.currentStage());
 
         vm.prank(_owner);
@@ -49,13 +49,13 @@ contract SwarmCoordinatorTest is Test {
         assertEq(newStage, startingStage + 1);
     }
 
-    function test_NonOwner_Cannot_AdvanceStage() public {
+    function test_NonOwner_CannotAdvanceStage_Fails() public {
         vm.prank(_nonUser);
         vm.expectRevert(SwarmCoordinator.OnlyStageManager.selector);
         swarmCoordinator.updateStageAndRound();
     }
 
-    function test_StageManager_Can_AdvanceRound() public {
+    function test_StageManager_CanAdvanceRound_Successfully() public {
         uint256 stageCount_ = swarmCoordinator.stageCount();
 
         vm.startPrank(_owner);
@@ -96,7 +96,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(storedPeerIdsForUser[0], peerId, "Peer ID not stored correctly");
     }
 
-    function test_Anyone_CanRegister_DifferentPeerIds() public {
+    function test_Anyone_CanRegister_DifferentPeerIds_Successfully() public {
         address user1 = makeAddr("user1");
         address user2 = makeAddr("user2");
         string memory peerId1 = "peerId1";
@@ -127,7 +127,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(storedPeerIdsForUser2[0], peerId2, "Peer ID 2 not stored correctly");
     }
 
-    function test_Anyone_Can_AddMultiplePeerIds() public {
+    function test_Anyone_CanAddMultiplePeerIds_Successfully() public {
         address user = makeAddr("user");
         string memory peerId1 = "peerId1";
         string memory peerId2 = "peerId2";
@@ -172,7 +172,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(eoas[2], user, "Third peer ID should map to user");
     }
 
-    function test_Anyone_CanGetEoa_ForPeerId() public {
+    function test_Anyone_CanGetEoa_ForPeerId_Successfully() public {
         address user = makeAddr("user");
         string memory peerId = "QmPeer1";
 
@@ -187,7 +187,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(eoas[0], user, "EOA not stored correctly");
     }
 
-    function test_Anyone_CanGetEoa_ForMultiplePeerIds() public {
+    function test_Anyone_CanGetEoa_ForMultiplePeerIds_Successfully() public {
         address user1 = makeAddr("user1");
         address user2 = makeAddr("user2");
         string memory peerId1 = "peerId1";
@@ -208,7 +208,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(eoas[1], user2, "EOA 2 not stored correctly");
     }
 
-    function test_GetEoa_ReturnsZeroAddress_ForUnregisteredPeerId() public view {
+    function test_GetEoa_ReturnsZeroAddress_ForUnregisteredPeerId_Successfully() public view {
         string memory unregisteredPeerId = "unregistered";
         string[] memory peerIds = new string[](1);
         peerIds[0] = unregisteredPeerId;
@@ -216,7 +216,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(eoas[0], address(0), "Unregistered peer ID should return zero address");
     }
 
-    function test_GetPeerId_ReturnsEmptyString_ForUnregisteredEoa() public {
+    function test_GetPeerId_ReturnsEmptyString_ForUnregisteredEoa_Successfully() public {
         address unregisteredEoa = makeAddr("unregistered");
         address[] memory eoas = new address[](1);
         eoas[0] = unregisteredEoa;
@@ -225,7 +225,7 @@ contract SwarmCoordinatorTest is Test {
     }
 
     // Bootnode tests
-    function test_BootnodeManager_CanAdd_Bootnodes() public {
+    function test_BootnodeManager_CanAddBootnodes_Successfully() public {
         string[] memory newBootnodes = new string[](2);
         newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
         newBootnodes[1] = "/ip4/127.0.0.1/tcp/4002/p2p/QmBootnode2";
@@ -241,7 +241,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(storedBootnodes[1], newBootnodes[1]);
     }
 
-    function test_NonBootnodeManager_CannotAddBootnodes() public {
+    function test_NonBootnodeManager_CannotAddBootnodes_Fails() public {
         string[] memory newBootnodes = new string[](1);
         newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
 
@@ -250,7 +250,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.addBootnodes(newBootnodes);
     }
 
-    function test_BootnodeManager_CanRemoveBootnode() public {
+    function test_BootnodeManager_CanRemoveBootnode_Successfully() public {
         // First add some bootnodes
         string[] memory newBootnodes = new string[](3);
         newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
@@ -274,13 +274,13 @@ contract SwarmCoordinatorTest is Test {
         assertEq(storedBootnodes[1], newBootnodes[2]);
     }
 
-    function test_BootnodeManager_CannotRemoveInvalidIndex() public {
+    function test_BootnodeManager_CannotRemoveInvalidIndex_Fails() public {
         vm.prank(_owner);
         vm.expectRevert(SwarmCoordinator.InvalidBootnodeIndex.selector);
         swarmCoordinator.removeBootnode(0); // No bootnodes yet
     }
 
-    function test_NonBootnodeManager_CannotRemoveBootnode() public {
+    function test_NonBootnodeManager_CannotRemoveBootnode_Fails() public {
         // First add a bootnode as the owner
         string[] memory newBootnodes = new string[](1);
         newBootnodes[0] = "bootnode1";
@@ -294,7 +294,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.removeBootnode(0);
     }
 
-    function test_BootnodeManager_CanClearAllBootnodes() public {
+    function test_BootnodeManager_CanClearAllBootnodes_Successfully() public {
         // First add some bootnodes
         string[] memory newBootnodes = new string[](2);
         newBootnodes[0] = "bootnode1";
@@ -314,7 +314,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(storedBootnodes.length, 0);
     }
 
-    function test_NonBootnodeManager_CannotClearBootnodes() public {
+    function test_NonBootnodeManager_CannotClearBootnodes_Fails() public {
         // First add a bootnode as the owner
         string[] memory newBootnodes = new string[](1);
         newBootnodes[0] = "bootnode1";
@@ -328,7 +328,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.clearBootnodes();
     }
 
-    function test_Anyone_CanGetBootnodes() public {
+    function test_Anyone_CanGetBootnodes_Successfully() public {
         // First add some bootnodes as the owner
         string[] memory newBootnodes = new string[](2);
         newBootnodes[0] = "bootnode1";
@@ -347,7 +347,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(storedBootnodes[1], newBootnodes[1]);
     }
 
-    function test_Anyone_CanGetBootnodesCount() public {
+    function test_Anyone_CanGetBootnodesCount_Successfully() public {
         // First add some bootnodes as the owner
         string[] memory newBootnodes = new string[](3);
         newBootnodes[0] = "bootnode1";
@@ -393,7 +393,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getPeerVoteCount(0, winners[1]), 1);
     }
 
-    function test_Anyone_CanSubmit_UnregisteredPeerIds() public {
+    function test_Anyone_CanSubmit_UnregisteredPeerIds_Successfully() public {
         string[] memory winners = new string[](2);
         winners[0] = "QmWinner1";
         winners[1] = "QmWinner2";
@@ -421,7 +421,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getPeerVoteCount(0, winners[1]), 1);
     }
 
-    function test_Nobody_CanSubmitSameWinner_MultipleTimesInARound() public {
+    function test_Nobody_CanSubmitSameWinner_MultipleTimesInARound_Fails() public {
         string[] memory winners = new string[](2);
         winners[0] = "QmWinner1";
         winners[1] = "QmWinner1";
@@ -436,7 +436,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(0, winners, winners[0]);
     }
 
-    function test_Nobody_CanSubmitWinners_ForFutureRound() public {
+    function test_Nobody_CanSubmitWinners_ForFutureRound_Fails() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -453,7 +453,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(1, winners, voterPeerId);
     }
 
-    function test_Nobody_CanVoteTwice_InSameRound() public {
+    function test_Nobody_CanVoteTwice_InSameRound_Fails() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -471,7 +471,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitWinners(0, winners, winners[0]);
     }
 
-    function test_VoterVoteCount_IsTrackedCorrectly() public {
+    function test_VoterVoteCount_IsTrackedCorrectly_Successfully() public {
         string[] memory winners = new string[](2);
         winners[0] = "QmWinner1";
         winners[1] = "QmWinner2";
@@ -498,7 +498,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getVoterVoteCount(winners[1]), 0);
     }
 
-    function test_VoterLeaderboard_ReturnsCorrectOrder() public {
+    function test_VoterLeaderboard_ReturnsCorrectOrder_Successfully() public {
         string[] memory winners1 = new string[](2);
         winners1[0] = "QmWinner1";
         winners1[1] = "QmWinner2";
@@ -551,7 +551,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(voteCounts[2], 1);
     }
 
-    function test_VoterLeaderboard_ReturnsCorrectSlice() public {
+    function test_VoterLeaderboard_ReturnsCorrectSlice_Successfully() public {
         string[] memory winners1 = new string[](2);
         winners1[0] = "QmWinner1";
         winners1[1] = "QmWinner2";
@@ -593,13 +593,13 @@ contract SwarmCoordinatorTest is Test {
         assertEq(voteCounts[0], 1);
     }
 
-    function test_VoterLeaderboard_ReturnsEmptyArrays_WhenNoVoters() public view {
+    function test_VoterLeaderboard_ReturnsEmptyArrays_WhenNoVoters_Successfully() public view {
         (string[] memory peerIds, uint256[] memory voteCounts) = swarmCoordinator.voterLeaderboard(0, 10);
         assertEq(peerIds.length, 0);
         assertEq(voteCounts.length, 0);
     }
 
-    function test_WinnerLeaderboard_ReturnsCorrectOrder() public {
+    function test_WinnerLeaderboard_ReturnsCorrectOrder_Successfully() public {
         string[] memory winners1 = new string[](2);
         winners1[0] = "QmWinner1";
         winners1[1] = "QmWinner2";
@@ -659,7 +659,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(wins[2], 1);
     }
 
-    function test_WinnerLeaderboard_ReturnsCorrectSlice() public {
+    function test_WinnerLeaderboard_ReturnsCorrectSlice_Successfully() public {
         string[] memory winners1 = new string[](2);
         winners1[0] = "QmWinner1";
         winners1[1] = "QmWinner2";
@@ -713,7 +713,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(wins[0], 1);
     }
 
-    function test_WinnerLeaderboard_HandlesInvalidIndexes() public {
+    function test_WinnerLeaderboard_HandlesInvalidIndexes_Successfully() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -746,13 +746,13 @@ contract SwarmCoordinatorTest is Test {
         assertEq(wins[0], 1);
     }
 
-    function test_WinnerLeaderboard_ReturnsEmptyArrays_WhenNoWinners() public view {
+    function test_WinnerLeaderboard_ReturnsEmptyArrays_WhenNoWinners_Successfully() public view {
         (string[] memory peerIds, uint256[] memory wins) = swarmCoordinator.winnerLeaderboard(0, 10);
         assertEq(peerIds.length, 0);
         assertEq(wins.length, 0);
     }
 
-    function test_WinnerLeaderboard_CorrectlyHandlesMoreThanMaxTopWinners() public {
+    function test_WinnerLeaderboard_CorrectlyHandlesMoreThanMaxTopWinners_Successfully() public {
         string[] memory winners = new string[](100);
         address[] memory users = new address[](100);
         for (uint256 i = 0; i < 100; i++) {
@@ -803,7 +803,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getTotalWins("QmUser"), 2);
     }
 
-    function test_VoterLeaderboard_CorrectlyHandlesMoreThanMaxTopVoters() public {
+    function test_VoterLeaderboard_CorrectlyHandlesMoreThanMaxTopVoters_Successfully() public {
         // Create 100 voters
         string[] memory voterPeerIds = new string[](100);
         for (uint256 i = 0; i < 100; i++) {
@@ -853,11 +853,11 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.getVoterVoteCount(newVoterPeerId), 2);
     }
 
-    function test_UniqueVoters_StartsAtZero() public view {
+    function test_UniqueVoters_StartsAtZero_Successfully() public view {
         assertEq(swarmCoordinator.uniqueVoters(), 0);
     }
 
-    function test_UniqueVoters_IncrementsForNewVoter() public {
+    function test_UniqueVoters_IncrementsForNewVoter_Successfully() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -871,7 +871,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVoters(), 1);
     }
 
-    function test_UniqueVoters_DoesNotIncrementForSameVoter() public {
+    function test_UniqueVoters_DoesNotIncrementForSameVoter_Successfully() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -897,7 +897,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVoters(), 1);
     }
 
-    function test_UniqueVoters_IncrementsForDifferentVoters() public {
+    function test_UniqueVoters_IncrementsForDifferentVoters_Successfully() public {
         string[] memory winners1 = new string[](1);
         winners1[0] = "QmWinner1";
 
@@ -929,7 +929,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVoters(), 2);
     }
 
-    function test_UniqueVoters_DoesNotIncrementAcrossRounds() public {
+    function test_UniqueVoters_DoesNotIncrementAcrossRounds_Successfully() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -955,11 +955,11 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVoters(), 1);
     }
 
-    function test_UniqueVotedPeers_StartsAtZero() public view {
+    function test_UniqueVotedPeers_StartsAtZero_Successfully() public view {
         assertEq(swarmCoordinator.uniqueVotedPeers(), 0);
     }
 
-    function test_UniqueVotedPeers_IncrementsForNewPeer() public {
+    function test_UniqueVotedPeers_IncrementsForNewPeer_Successfully() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -973,7 +973,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
     }
 
-    function test_UniqueVotedPeers_DoesNotIncrementForSamePeer() public {
+    function test_UniqueVotedPeers_DoesNotIncrementForSamePeer_Successfully() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -997,7 +997,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
     }
 
-    function test_UniqueVotedPeers_IncrementsForDifferentPeers() public {
+    function test_UniqueVotedPeers_IncrementsForDifferentPeers_Successfully() public {
         string[] memory winners1 = new string[](1);
         winners1[0] = "QmWinner1";
         string[] memory winners2 = new string[](1);
@@ -1028,7 +1028,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVotedPeers(), 2);
     }
 
-    function test_UniqueVotedPeers_DoesNotIncrementAcrossRounds() public {
+    function test_UniqueVotedPeers_DoesNotIncrementAcrossRounds_Successfully() public {
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
 
@@ -1054,7 +1054,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(swarmCoordinator.uniqueVotedPeers(), 1);
     }
 
-    function test_UniqueVotedPeers_TracksUniquenessAcrossRounds() public {
+    function test_UniqueVotedPeers_TracksUniquenessAcrossRounds_Successfully() public {
         string[] memory winners1 = new string[](1);
         winners1[0] = "QmWinner1";
         string[] memory winners2 = new string[](1);
@@ -1121,7 +1121,7 @@ contract SwarmCoordinatorTest is Test {
         assertTrue(swarmCoordinator.hasSubmittedRoundStageReward(0, 0, _user1));
     }
 
-    function test_Nobody_CanSubmitReward_TwiceInSameRoundAndStage() public {
+    function test_Nobody_CanSubmitReward_TwiceInSameRoundAndStage_Fails() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
         string memory peerId1 = "QmPeer1";
@@ -1137,7 +1137,7 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
     }
 
-    function test_Anyone_CanSubmitReward_InDifferentStages() public {
+    function test_Anyone_CanSubmitReward_InDifferentStages_Successfully() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
@@ -1172,7 +1172,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(totalRewards[0], reward1 + reward2);
     }
 
-    function test_Anyone_CanSubmitReward_InDifferentRounds() public {
+    function test_Anyone_CanSubmitReward_InDifferentRounds_Successfully() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
         string memory peerId1 = "QmPeer1";
@@ -1211,7 +1211,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(totalRewards[0], reward1 + reward2);
     }
 
-    function test_Anyone_CanSubmitReward_ForPastRound() public {
+    function test_Anyone_CanSubmitReward_ForPastRound_Successfully() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
 
@@ -1242,7 +1242,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(rewards[1], reward2);
     }
 
-    function test_Nobody_CanSubmitRewards_ForDifferentPeer() public {
+    function test_Nobody_CanSubmitRewards_ForDifferentPeer_Fails() public {
         uint256 reward1 = 100;
 
         string memory peerId1 = "QmPeer1";
@@ -1259,7 +1259,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitReward(0, 0, reward1, peerId2);
     }
 
-    function test_GetRoundStageReward_MultipleAddresses() public {
+    function test_GetRoundStageReward_MultipleAddresses_Successfully() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
         uint256 reward3 = 300;
@@ -1298,13 +1298,13 @@ contract SwarmCoordinatorTest is Test {
         assertEq(rewards[2], reward3);
     }
 
-    function test_GetRoundStageReward_EmptyArray() public view {
+    function test_GetRoundStageReward_EmptyArray_Successfully() public view {
         address[] memory accounts = new address[](0);
         uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         assertEq(rewards.length, 0);
     }
 
-    function test_GetTotalRewards_MultipleAddresses() public {
+    function test_GetTotalRewards_MultipleAddresses_Successfully() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
         uint256 reward3 = 300;
@@ -1343,7 +1343,7 @@ contract SwarmCoordinatorTest is Test {
         assertEq(totalRewards[2], reward3);
     }
 
-    function test_GetTotalRewards_EmptyArray() public view {
+    function test_GetTotalRewards_EmptyArray_Successfully() public view {
         string[] memory peerIds = new string[](0);
         uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(totalRewards.length, 0);
