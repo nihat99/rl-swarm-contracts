@@ -9,10 +9,14 @@ contract SwarmCoordinatorTest is Test {
 
     address _owner = makeAddr("owner");
     address _bootnodeManager = makeAddr("bootnodeManager");
-    address _user = makeAddr("user");
     address _stageManager = makeAddr("stageManager");
-    address _user1 = makeAddr("voter1");
-    address _user2 = makeAddr("voter2");
+
+    // Test users with different roles
+    address _user1 = makeAddr("user1");
+    address _user2 = makeAddr("user2");
+    address _user3 = makeAddr("user3");
+
+    address _nonUser = makeAddr("nonUser");
 
     function setUp() public {
         vm.startPrank(_owner);
@@ -51,7 +55,7 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_NonOwner_Cannot_AdvanceStage() public {
-        vm.prank(_user);
+        vm.prank(_nonUser);
         vm.expectRevert(SwarmCoordinator.OnlyStageManager.selector);
         swarmCoordinator.updateStageAndRound();
     }
@@ -247,7 +251,7 @@ contract SwarmCoordinatorTest is Test {
         string[] memory newBootnodes = new string[](1);
         newBootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
 
-        vm.prank(_user);
+        vm.prank(_nonUser);
         vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
         swarmCoordinator.addBootnodes(newBootnodes);
     }
@@ -291,7 +295,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Try to remove as non-manager
-        vm.prank(_user);
+        vm.prank(_nonUser);
         vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
         swarmCoordinator.removeBootnode(0);
     }
@@ -325,7 +329,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.addBootnodes(newBootnodes);
 
         // Try to clear as non-manager
-        vm.prank(_user);
+        vm.prank(_nonUser);
         vm.expectRevert(SwarmCoordinator.OnlyBootnodeManager.selector);
         swarmCoordinator.clearBootnodes();
     }
@@ -339,8 +343,8 @@ contract SwarmCoordinatorTest is Test {
         vm.prank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
-        // Get bootnodes as a regular user
-        vm.prank(_user);
+        // Get bootnodes
+        vm.prank(_nonUser);
         string[] memory storedBootnodes = swarmCoordinator.getBootnodes();
 
         // Verify the bootnodes are accessible
@@ -359,8 +363,8 @@ contract SwarmCoordinatorTest is Test {
         vm.prank(_owner);
         swarmCoordinator.addBootnodes(newBootnodes);
 
-        // Get bootnode count as a regular user
-        vm.prank(_user);
+        // Get bootnode count
+        vm.prank(_nonUser);
         uint256 count = swarmCoordinator.getBootnodesCount();
 
         // Verify the count is correct
@@ -375,10 +379,6 @@ contract SwarmCoordinatorTest is Test {
         string memory voterPeerId = "QmVoter1";
 
         // Register peer IDs first
-        vm.prank(_user1);
-        swarmCoordinator.registerPeer(winners[0]);
-        vm.prank(_user2);
-        swarmCoordinator.registerPeer(winners[1]);
         vm.prank(_user1);
         swarmCoordinator.registerPeer(voterPeerId);
 
@@ -523,7 +523,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(winners1[0]);
         vm.prank(_user2);
         swarmCoordinator.registerPeer(winners1[1]);
-        vm.prank(_user);
+        vm.prank(_user3);
         swarmCoordinator.registerPeer(winners2[0]);
 
         // Set stage count
@@ -549,7 +549,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
-        vm.prank(_user);
+        vm.prank(_user3);
         swarmCoordinator.submitWinners(2, winners2, winners2[0]);
 
         // Get top 3 voters
@@ -579,7 +579,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(winners1[0]);
         vm.prank(_user2);
         swarmCoordinator.registerPeer(winners1[1]);
-        vm.prank(_user);
+        vm.prank(_user3);
         swarmCoordinator.registerPeer(winners2[0]);
 
         // Set stage count
@@ -605,7 +605,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
-        vm.prank(_user);
+        vm.prank(_user3);
         swarmCoordinator.submitWinners(2, winners2, winners2[0]);
 
         // Get slice from index 2 to 3
@@ -645,7 +645,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
         vm.stopPrank();
 
-        vm.startPrank(_user);
+        vm.startPrank(_user3);
         swarmCoordinator.registerPeer(winners2[0]);
         swarmCoordinator.registerPeer(peerId3);
         vm.stopPrank();
@@ -672,7 +672,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
-        vm.prank(_user);
+        vm.prank(_user3);
         swarmCoordinator.submitWinners(2, winners2, peerId3);
 
         // Get top 3 winners
@@ -712,7 +712,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
         vm.stopPrank();
 
-        vm.startPrank(_user);
+        vm.startPrank(_user3);
         swarmCoordinator.registerPeer(winners2[0]);
         swarmCoordinator.registerPeer(peerId3);
         vm.stopPrank();
@@ -740,7 +740,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.updateStageAndRound();
 
         // Submit winners for round 2
-        vm.prank(_user);
+        vm.prank(_user3);
         swarmCoordinator.submitWinners(2, winners2, peerId3);
 
         // Get slice from index 2 to 3
@@ -806,11 +806,11 @@ contract SwarmCoordinatorTest is Test {
         }
 
         // Register voter
-        vm.prank(_user);
+        vm.prank(_user1);
         swarmCoordinator.registerPeer("QmUser");
 
         // Submit winners
-        vm.prank(_user);
+        vm.prank(_user1);
         swarmCoordinator.submitWinners(0, winners, "QmUser");
 
         // Get top 100 winners
@@ -827,13 +827,13 @@ contract SwarmCoordinatorTest is Test {
         vm.prank(_owner);
         swarmCoordinator.updateStageAndRound();
 
-        vm.prank(_user);
+        vm.prank(_user1);
         swarmCoordinator.submitWinners(1, topWinner, "QmUser");
 
         vm.prank(_owner);
         swarmCoordinator.updateStageAndRound();
 
-        vm.prank(_user);
+        vm.prank(_user1);
         swarmCoordinator.submitWinners(2, topWinner, "QmUser");
 
         // New winner bubbled up the leaderboard
@@ -850,19 +850,17 @@ contract SwarmCoordinatorTest is Test {
         string[] memory voterPeerIds = new string[](100);
         for (uint256 i = 0; i < 100; i++) {
             voterPeerIds[i] = string(abi.encodePacked("QmVoter", i));
-            vm.prank(_user);
+            vm.prank(_user1);
             swarmCoordinator.registerPeer(voterPeerIds[i]);
         }
 
         // Register a peer for voting
         string[] memory winners = new string[](1);
         winners[0] = "QmWinner1";
-        // vm.prank(_user);
-        // swarmCoordinator.registerPeer(winners[0]);
 
         // Have each voter vote once
         for (uint256 i = 0; i < 100; i++) {
-            vm.prank(_user);
+            vm.prank(_user1);
             swarmCoordinator.submitWinners(0, winners, voterPeerIds[i]);
         }
 
@@ -880,17 +878,17 @@ contract SwarmCoordinatorTest is Test {
 
         // Add two more votes for a new voter
         string memory newVoterPeerId = "QmNewVoter";
-        vm.prank(_user);
+        vm.prank(_user1);
         swarmCoordinator.registerPeer(newVoterPeerId);
 
-        vm.prank(_user);
+        vm.prank(_user1);
         swarmCoordinator.submitWinners(1, winners, newVoterPeerId);
 
         // Advance to next round
         vm.prank(_owner);
         swarmCoordinator.updateStageAndRound();
 
-        vm.prank(_user);
+        vm.prank(_user1);
         swarmCoordinator.submitWinners(2, winners, newVoterPeerId);
 
         // New voter should bubble up the leaderboard
@@ -1370,7 +1368,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitReward(0, 0, reward2, peerId2);
         vm.stopPrank();
 
-        vm.startPrank(_user);
+        vm.startPrank(_user3);
         swarmCoordinator.registerPeer(peerId3);
         swarmCoordinator.submitReward(0, 0, reward3, peerId3);
         vm.stopPrank();
@@ -1379,7 +1377,7 @@ contract SwarmCoordinatorTest is Test {
         address[] memory accounts = new address[](3);
         accounts[0] = _user1;
         accounts[1] = _user2;
-        accounts[2] = _user;
+        accounts[2] = _user3;
         uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
 
         // Verify the rewards
@@ -1404,7 +1402,7 @@ contract SwarmCoordinatorTest is Test {
         uint256 reward3 = 300;
 
         string memory peerId1 = "QmPeer1";
-        string memory peerId2 = "Qmpeer2";
+        string memory peerId2 = "QmPeer2";
         string memory peerId3 = "QmPeer3";
 
         // Submit rewards for different users
@@ -1418,7 +1416,7 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.submitReward(0, 0, reward2, peerId2);
         vm.stopPrank();
 
-        vm.startPrank(_user);
+        vm.startPrank(_user3);
         swarmCoordinator.registerPeer(peerId3);
         swarmCoordinator.submitReward(0, 0, reward3, peerId3);
         vm.stopPrank();
