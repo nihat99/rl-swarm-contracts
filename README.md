@@ -207,6 +207,7 @@ forge test -vvv
 
 ### Code Style
 
+- Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - Use Solidity style guide
 - Run formatter before committing:
 
@@ -266,8 +267,8 @@ This script will:
 - Deploy the SwarmCoordinator contract
 - Register mock peers
 - Add bootnode entries
-- Set up test rounds and winners
-- Display contract address and leaderboard
+- Submit winners and rewards
+- Display leaderboard
 
 You can now interact with the contract at the address printed in the deployment output.
 

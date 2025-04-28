@@ -28,6 +28,7 @@ contract DeployLocalMockData is Script {
         // Deploy coordinator
         coordinator = new SwarmCoordinator();
         coordinator.initialize(owner.addr);
+        console2.log("Coordinator deployed at", address(coordinator));
 
         // Set stage count
         coordinator.setStageCount(1);

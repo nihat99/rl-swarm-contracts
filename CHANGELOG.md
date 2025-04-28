@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Peers can submit rewards [PR#31](https://github.com/gensyn-ai/rl-swarm-contracts/pull/31)
+- Makefile
+
 ### Changed
 
 - Relationship PeerID (many) to EOA (one) [PR#28](https://github.com/gensyn-ai/rl-swarm-contracts/pull/28)
