@@ -17,7 +17,7 @@ This repository contains the smart contracts for the RL Swarm project, focusing 
 
 ## Overview
 
-The main contract `SwarmCoordinator` manages a round-based system for coordinating swarm participants, tracking winners, and managing bootnode infrastructure. The contract includes features for:
+The main contract `SwarmCoordinator` manages a round-based system for coordinating swarm participants, tracking winners, reporting rewards, and managing bootnode infrastructure. The contract includes features for:
 
 - Round and stage management
 - Peer registration and tracking
@@ -25,39 +25,6 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 - Winner submission and reward tracking
 - Unique voter tracking across rounds
 - Unique voted peer tracking across rounds
-
-## Contract Architecture
-
-### Key Components
-
-1. **Stage and Round Management**
-   - Rounds progress through multiple stages
-   - Stages are advanced by a designated stage updater
-   - No time-based duration checks for stage progression
-
-2. **Peer Management**
-   - Users can register their peer IDs by linking them to their EOA
-   - EOA addresses are linked to peer IDs (permission-less for now)
-
-3. **Bootnode Infrastructure**
-   - Managed by a designated bootnode manager
-   - Supports adding, removing, and listing bootnodes
-   - Helps maintain network connectivity
-
-4. **Winner Management**
-   - Designated winner manager can submit winners for each round
-   - Tracks accrued rewards per participant
-   - Prevents duplicate winner submissions
-
-5. **Voter Tracking**
-   - Tracks unique voters across all rounds
-   - Counts each address only once, regardless of how many times they vote
-   - Provides total count of unique participants
-
-6. **Voted Peer Tracking**
-   - Tracks unique peers that have received votes
-   - Counts each peer only once, regardless of how many times they are voted for
-   - Provides total count of unique peers that have been voted on
 
 ## Roles
 
@@ -84,7 +51,7 @@ The main contract `SwarmCoordinator` manages a round-based system for coordinati
 #### Register your peer
 
 ```solidity
-function registerPeer(bytes calldata peerId) external
+function registerPeer(string calldata peerId) external
 ```
 
 #### View current round and stage
@@ -97,20 +64,20 @@ function currentStage() external view returns (uint256)
 #### Check total wins
 
 ```solidity
-function getTotalWins(address account) external view returns (uint256)
+function getTotalWins(string calldata peerId) external view returns (uint256)
 ```
 
 #### View the leaderboard
 
 ```solidity
 function winnerLeaderboard(uint256 start, uint256 end) external view returns (string[] memory peerIds, uint256[] memory wins)
-function voterLeaderboard(uint256 start, uint256 end) external view returns (address[] memory voters, uint256[] memory voteCounts)
+function voterLeaderboard(uint256 start, uint256 end) external view returns (string[] memory peerIds, uint256[] memory voteCounts)
 ```
 
 Returns slices of the leaderboards:
 
 - `winnerLeaderboard`: Returns peer IDs and their win counts, sorted by number of wins (descending)
-- `voterLeaderboard`: Returns voter addresses and their vote counts, sorted by number of votes (descending)
+- `voterLeaderboard`: Returns peer IDs and their vote counts, sorted by number of votes (descending)
 
 Both leaderboards track up to 100 top entries. The `start` and `end` parameters define the range of positions to return (inclusive start, exclusive end).
 
@@ -133,7 +100,7 @@ Returns the total number of unique peer IDs that have received votes across all 
 #### Get peer and EOA mappings
 
 ```solidity
-function getPeerId(address[] calldata eoas) external view returns (string[] memory)
+function getPeerId(address[] calldata eoas) external view returns (string[][] memory)
 function getEoa(string[] calldata peerIds) external view returns (address[] memory)
 ```
 
@@ -142,8 +109,8 @@ Get peer IDs for multiple EOAs or EOAs for multiple peer IDs.
 #### Get voting information
 
 ```solidity
-function getVoterVoteCount(address voter) external view returns (uint256)
-function getVoterVotes(uint256 roundNumber, address voter) external view returns (string[] memory)
+function getVoterVoteCount(string calldata peerId) external view returns (uint256)
+function getVoterVotes(uint256 roundNumber, string calldata peerId) external view returns (string[] memory)
 function getPeerVoteCount(uint256 roundNumber, string calldata peerId) external view returns (uint256)
 ```
 
@@ -160,10 +127,28 @@ Get detailed voting information including:
 Manages contract configuration and roles.
 
 ```solidity
-function setStageCount(uint256 stageCount_)
 function grantRole(bytes32 role, address account)
 function revokeRole(bytes32 role, address account)
 ```
+
+The deployer of the contract is automatically granted the roles:
+
+- `OWNER_ROLE`
+- `STAGE_MANAGER_ROLE`
+- `BOOTNODE_MANAGER_ROLE`
+
+To grant a role to a new account, the owner can call `grantRole` with:
+
+- `role`: The role identifier (e.g., `OWNER_ROLE`, `STAGE_MANAGER_ROLE`, `BOOTNODE_MANAGER_ROLE`)
+- `account`: The address to grant the role to
+
+For example, to grant the STAGE_MANAGER_ROLE to an address:
+
+```solidity
+grantRole(STAGE_MANAGER_ROLE, 0x1234...5678)
+```
+
+Roles can be revoked using `revokeRole` with the same parameters.
 
 #### Stage Manager
 

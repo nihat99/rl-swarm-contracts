@@ -25,7 +25,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // Current stage within the round
     uint256 _currentStage = 0;
     // Total number of stages in a round
-    uint256 _stageCount = 0;
+    uint256 constant _stageCount = 3;
     // Maps EOA addresses to their corresponding peer IDs
     mapping(address => string[]) _eoaToPeerId;
     // Maps peer IDs to their corresponding EOA addresses
@@ -247,18 +247,10 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
-     * @dev Sets the total number of stages in a round
-     * @param stageCount_ New total number of stages
-     */
-    function setStageCount(uint256 stageCount_) public onlyOwner {
-        _stageCount = stageCount_;
-    }
-
-    /**
      * @dev Returns the total number of stages in a round
      * @return Number of stages
      */
-    function stageCount() public view returns (uint256) {
+    function stageCount() public pure returns (uint256) {
         return _stageCount;
     }
 
@@ -507,13 +499,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
             }
         }
 
-        // Move voter up in the list if needed
+        // Find our how far we need to move the voter up in the list
+        uint256 initialIndex = currentIndex;
         while (currentIndex > 0 && _voterVoteCounts[_topVoters[currentIndex - 1]] < voterVotes) {
-            // Swap with previous position
-            string memory temp = _topVoters[currentIndex - 1];
-            _topVoters[currentIndex - 1] = _topVoters[currentIndex];
-            _topVoters[currentIndex] = temp;
             currentIndex--;
+        }
+
+        // Swap if voter moved up in the list
+        if (currentIndex != initialIndex) {
+            string memory temp = _topVoters[currentIndex];
+            _topVoters[currentIndex] = _topVoters[initialIndex];
+            _topVoters[initialIndex] = temp;
         }
     }
 
@@ -552,13 +548,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
             }
         }
 
-        // Move winner up in the list if needed
+        // Find our how far we need to move the voter up in the list
+        uint256 initialIndex = currentIndex;
         while (currentIndex > 0 && _totalWins[_topWinners[currentIndex - 1]] < winnerWins) {
-            // Swap with previous position
-            string memory temp = _topWinners[currentIndex - 1];
-            _topWinners[currentIndex - 1] = _topWinners[currentIndex];
-            _topWinners[currentIndex] = temp;
             currentIndex--;
+        }
+
+        // Swap if winner moved up in the list
+        if (currentIndex != initialIndex) {
+            string memory temp = _topWinners[currentIndex];
+            _topWinners[currentIndex] = _topWinners[initialIndex];
+            _topWinners[initialIndex] = temp;
         }
     }
 
@@ -737,9 +737,9 @@ contract SwarmCoordinator is UUPSUpgradeable {
     function getRoundStageReward(uint256 roundNumber, uint256 stageNumber, address[] calldata accounts)
         external
         view
-        returns (uint256[] memory rewards)
+        returns (uint256[] memory)
     {
-        rewards = new uint256[](accounts.length);
+        uint256[] memory rewards = new uint256[](accounts.length);
         for (uint256 i = 0; i < accounts.length; i++) {
             rewards[i] = _roundStageRewards[roundNumber][stageNumber][accounts[i]];
         }
@@ -766,8 +766,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
      * @param peerIds Array of peer IDs to query
      * @return rewards Array of corresponding total rewards for each peer ID
      */
-    function getTotalRewards(string[] calldata peerIds) external view returns (uint256[] memory rewards) {
-        rewards = new uint256[](peerIds.length);
+    function getTotalRewards(string[] calldata peerIds) external view returns (uint256[] memory) {
+        uint256[] memory rewards = new uint256[](peerIds.length);
         for (uint256 i = 0; i < peerIds.length; i++) {
             rewards[i] = _totalRewards[peerIds[i]];
         }

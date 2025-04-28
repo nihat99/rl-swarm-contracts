@@ -30,9 +30,6 @@ contract DeployLocalMockData is Script {
         coordinator.initialize(owner.addr);
         console2.log("Coordinator deployed at", address(coordinator));
 
-        // Set stage count
-        coordinator.setStageCount(1);
-
         // Add bootnodes
         string[] memory bootnodes = new string[](3);
         bootnodes[0] = "/ip4/127.0.0.1/tcp/4001/p2p/QmBootnode1";
