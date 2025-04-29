@@ -285,7 +285,7 @@ After loading the environment file continue to deployment.
 
 ### Proxy
 
-This contract uses an UUPSUpgradeable pattern. Thus, a proxy and the implementation need to be deployed an verified.
+This contract uses an UUPSUpgradeable pattern. Thus, a proxy and the implementation need to be deployed and verified.
 
 #### Deploy initial proxy
 
