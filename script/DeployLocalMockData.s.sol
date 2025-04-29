@@ -70,7 +70,13 @@ contract DeployLocalMockData is Script {
         user3Round0Winners[1] = peerId2;
         coordinator.submitWinners(0, user3Round0Winners, peerId3);
 
-        // Advance round
+        // Advance round (3 stages required to pass to increment round)
+        vm.broadcast(owner.privateKey);
+        coordinator.updateStageAndRound();
+
+        vm.broadcast(owner.privateKey);
+        coordinator.updateStageAndRound();
+
         vm.broadcast(owner.privateKey);
         coordinator.updateStageAndRound();
 
@@ -98,6 +104,10 @@ contract DeployLocalMockData is Script {
         coordinator.submitWinners(1, user3Round1Winners, peerId3);
 
         // Advance round
+        vm.broadcast(owner.privateKey);
+        coordinator.updateStageAndRound();
+        vm.broadcast(owner.privateKey);
+        coordinator.updateStageAndRound();
         vm.broadcast(owner.privateKey);
         coordinator.updateStageAndRound();
 
