@@ -230,6 +230,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
         return _roleToAddress[role][account];
     }
 
+    // .---------------------------------------------------------------.
+    // | ███████████                                      █████        |
+    // |░░███░░░░░███                                    ░░███         |
+    // | ░███    ░███   ██████  █████ ████ ████████    ███████   █████ |
+    // | ░██████████   ███░░███░░███ ░███ ░░███░░███  ███░░███  ███░░  |
+    // | ░███░░░░░███ ░███ ░███ ░███ ░███  ░███ ░███ ░███ ░███ ░░█████ |
+    // | ░███    ░███ ░███ ░███ ░███ ░███  ░███ ░███ ░███ ░███  ░░░░███|
+    // | █████   █████░░██████  ░░████████ ████ █████░░████████ ██████ |
+    // |░░░░░   ░░░░░  ░░░░░░    ░░░░░░░░ ░░░░ ░░░░░  ░░░░░░░░ ░░░░░░  |
+    // '---------------------------------------------------------------'
+
     /**
      * @dev Returns the current round number
      * @return Current round number
@@ -397,16 +408,19 @@ contract SwarmCoordinator is UUPSUpgradeable {
         return _bootnodes.length;
     }
 
-    // .---------------------------------------------------------------------------.
-    // | █████   ███   █████  ███                                                  |
-    // |░░███   ░███  ░░███  ░░░                                                   |
-    // | ░███   ░███   ░███  ████  ████████   ████████    ██████  ████████   █████ |
-    // | ░███   ░███   ░███ ░░███ ░░███░░███ ░░███░░███  ███░░███░░███░░███ ███░░  |
-    // | ░░███  █████  ███   ░███  ░███ ░███  ░███ ░███ ░███████  ░███ ░░░ ░░█████ |
-    // |  ░░░█████░█████░    ░███  ░███ ░███  ░███ ░███ ░███░░░   ░███      ░░░░███|
-    // |    ░░███ ░░███      █████ ████ █████ ████ █████░░██████  █████     ██████ |
-    // |     ░░░   ░░░      ░░░░░ ░░░░ ░░░░░ ░░░░ ░░░░░  ░░░░░░  ░░░░░     ░░░░░░  |
-    // '---------------------------------------------------------------------------'
+    // .-------------------------------------------------------------------------------------.
+    // | █████   █████  ███           █████                                                  |
+    // |░░███   ░░███  ░░░           ░░███                                                   |
+    // | ░███    ░███  ████   ███████ ░███████    █████   ██████   ██████  ████████   ██████ |
+    // | ░███████████ ░░███  ███░░███ ░███░░███  ███░░   ███░░███ ███░░███░░███░░███ ███░░███|
+    // | ░███░░░░░███  ░███ ░███ ░███ ░███ ░███ ░░█████ ░███ ░░░ ░███ ░███ ░███ ░░░ ░███████ |
+    // | ░███    ░███  ░███ ░███ ░███ ░███ ░███  ░░░░███░███  ███░███ ░███ ░███     ░███░░░  |
+    // | █████   █████ █████░░███████ ████ █████ ██████ ░░██████ ░░██████  █████    ░░██████ |
+    // |░░░░░   ░░░░░ ░░░░░  ░░░░░███░░░░ ░░░░░ ░░░░░░   ░░░░░░   ░░░░░░  ░░░░░      ░░░░░░  |
+    // |                     ███ ░███                                                        |
+    // |                    ░░██████                                                         |
+    // |                     ░░░░░░                                                          |
+    // '-------------------------------------------------------------------------------------'
 
     /**
      * @dev Submits a list of winners for a specific round
@@ -473,7 +487,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         // Find if voter is already in the list
         uint256 currentIndex = type(uint256).max;
-        for (uint256 i = 0; i < _topVoters.length; i++) {
+        uint256 topVotersLength = _topVoters.length;
+        for (uint256 i = 0; i < topVotersLength; i++) {
             if (keccak256(bytes(_topVoters[i])) == keccak256(bytes(voter))) {
                 currentIndex = i;
                 break;
@@ -482,16 +497,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         if (currentIndex == type(uint256).max) {
             // Voter is not in the list
-            if (_topVoters.length < MAX_TOP_WINNERS) {
+            if (topVotersLength < MAX_TOP_WINNERS) {
                 // List is not full, add to end
                 _topVoters.push(voter);
-                currentIndex = _topVoters.length - 1;
+                topVotersLength++;
+                currentIndex = topVotersLength - 1;
             } else {
                 // List is full, check if voter should be added
-                if (_voterVoteCounts[_topVoters[_topVoters.length - 1]] < voterVotes) {
+                if (_voterVoteCounts[_topVoters[topVotersLength - 1]] < voterVotes) {
                     // Replace last place
-                    _topVoters[_topVoters.length - 1] = voter;
-                    currentIndex = _topVoters.length - 1;
+                    _topVoters[topVotersLength - 1] = voter;
+                    currentIndex = topVotersLength - 1;
                 } else {
                     // Voter doesn't qualify for top list
                     return;
@@ -522,7 +538,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         // Find if winner is already in the list
         uint256 currentIndex = type(uint256).max;
-        for (uint256 i = 0; i < _topWinners.length; i++) {
+        uint256 topWinnersLength = _topWinners.length;
+        for (uint256 i = 0; i < topWinnersLength; i++) {
             if (keccak256(bytes(_topWinners[i])) == keccak256(bytes(winner))) {
                 currentIndex = i;
                 break;
@@ -531,16 +548,17 @@ contract SwarmCoordinator is UUPSUpgradeable {
 
         if (currentIndex == type(uint256).max) {
             // Winner is not in the list
-            if (_topWinners.length < MAX_TOP_WINNERS) {
+            if (topWinnersLength < MAX_TOP_WINNERS) {
                 // List is not full, add to end
                 _topWinners.push(winner);
-                currentIndex = _topWinners.length - 1;
+                topWinnersLength++;
+                currentIndex = topWinnersLength - 1;
             } else {
                 // List is full, check if winner should be added
-                if (_totalWins[_topWinners[_topWinners.length - 1]] < winnerWins) {
+                if (_totalWins[_topWinners[topWinnersLength - 1]] < winnerWins) {
                     // Replace last place
-                    _topWinners[_topWinners.length - 1] = winner;
-                    currentIndex = _topWinners.length - 1;
+                    _topWinners[topWinnersLength - 1] = winner;
+                    currentIndex = topWinnersLength - 1;
                 } else {
                     // Winner doesn't qualify for top list
                     return;
@@ -604,8 +622,12 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Fill the arrays
         for (uint256 i = start; i < end; i++) {
             uint256 index = i - start;
-            peerIds[index] = _topVoters[i];
-            voteCounts[index] = _voterVoteCounts[_topVoters[i]];
+
+            // Cache the top voter
+            string memory topVoter = _topVoters[i];
+
+            peerIds[index] = topVoter;
+            voteCounts[index] = _voterVoteCounts[topVoter];
         }
 
         return (peerIds, voteCounts);
@@ -673,8 +695,12 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Fill the arrays
         for (uint256 i = start; i < end; i++) {
             uint256 index = i - start;
-            peerIds[index] = _topWinners[i];
-            wins[index] = _totalWins[_topWinners[i]];
+
+            // Cache the top winner
+            string memory topWinner = _topWinners[i];
+
+            peerIds[index] = topWinner;
+            wins[index] = _totalWins[topWinner];
         }
 
         return (peerIds, wins);
