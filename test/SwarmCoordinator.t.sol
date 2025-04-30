@@ -1137,6 +1137,21 @@ contract SwarmCoordinatorTest is Test {
         vm.stopPrank();
     }
 
+    function test_Nobody_CanSubmitReward_InFutureStage_Fails() public {
+        uint256 reward1 = 100;
+        string memory peerId1 = "QmPeer1";
+
+        // Make sure we're in stage 0
+        vm.assertEq(swarmCoordinator.currentStage(), 0);
+
+        // First submission
+        vm.startPrank(_user1);
+        swarmCoordinator.registerPeer(peerId1);
+        vm.expectRevert(SwarmCoordinator.InvalidStageNumber.selector);
+        swarmCoordinator.submitReward(0, 1, reward1, peerId1);
+        vm.stopPrank();
+    }
+
     function test_Anyone_CanSubmitReward_InDifferentStages_Successfully() public {
         uint256 reward1 = 100;
         uint256 reward2 = 200;
@@ -1151,13 +1166,21 @@ contract SwarmCoordinatorTest is Test {
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, peerId1, reward1);
         swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+        vm.stopPrank();
+
+        // Move to next stage
+        vm.startPrank(_owner);
+        swarmCoordinator.updateStageAndRound();
+        vm.stopPrank();
 
         // Submit reward in stage 1
+        vm.startPrank(_user1);
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.RewardSubmitted(_user1, 0, 1, reward2, peerId1);
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.CumulativeRewardsUpdated(_user1, peerId1, reward1 + reward2);
         swarmCoordinator.submitReward(0, 1, reward2, peerId1);
+        vm.stopPrank();
 
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
