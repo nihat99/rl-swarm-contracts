@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `submitReward` accepts integer rewards, not only uints [PR#]()
+- `submitReward` accepts integer rewards [PR#42](https://github.com/gensyn-ai/rl-swarm-contracts/pull/42)
 
 [0.4.1]
 
