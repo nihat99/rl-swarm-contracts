@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  test-and-release:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Show Forge version
+        run: |
+          forge --version
+
+      - name: Run Forge fmt
+        run: |
+          forge fmt --check
+        id: fmt
+
+      - name: Run Forge build
+        run: |
+          forge build --sizes
+        id: build
+
+      - name: Run Forge tests
+        run: |
+          forge test --gas-report -vvv
+        id: test
+
+      - name: Release SwarmCoordinator.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Built-in token for repo access
+        run: |
+          TAG_NAME="${GITHUB_REF##*/}"
+
+          echo "Creating release for $TAG_NAME"
+
+          gh release create "$TAG_NAME" \
+            --title "$TAG_NAME" \
+            --notes "Automated release for $TAG_NAME" \
+            || echo "Release already exists, continuing..."
+
+          CONTRACT_ARTIFACT_PATH="out/SwarmCoordinator.sol/SwarmCoordinator.json"
+
+          if [[ -f "$CONTRACT_ARTIFACT_PATH" ]]; then
+            gh release upload "$TAG_NAME" "$CONTRACT_ARTIFACT_PATH" --clobber
+          else
+            echo "❌ Contract artifact not found: $CONTRACT_ARTIFACT_PATH"
+            exit 1
+          fi
