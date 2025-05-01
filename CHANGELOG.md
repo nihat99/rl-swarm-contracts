@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+[0.4.1]
+
+### Changed
+
+### Fixed
+
+- `submitReward` checks provided stageNumber to be current or past [PR#41](https://github.com/gensyn-ai/rl-swarm-contracts/pull/41)
+
+## [0.4.0]
 
 ### Added
 
@@ -17,19 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relationship PeerID (many) to EOA (one) [PR#28](https://github.com/gensyn-ai/rl-swarm-contracts/pull/28)
 - Hardcode 3 stages instead of having a configurable number
 
-### Deprecated
-
-### Removed
-
-### Fixed
-
 ### Security
 
 - Prevent double voting for the same peer in a round [PR#30](https://github.com/gensyn-ai/rl-swarm-contracts/pull/30)
 
 ## [0.3.1]
-
-### Added
 
 ### Changed
 
