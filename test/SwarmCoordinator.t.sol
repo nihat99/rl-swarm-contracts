@@ -1097,7 +1097,7 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanSubmitReward_Successfully() public {
-        uint256 reward = 100;
+        int256 reward = 100;
         string memory peerId1 = "QmPeer1";
 
         vm.startPrank(_user1);
@@ -1112,18 +1112,18 @@ contract SwarmCoordinatorTest is Test {
         // Verify reward was recorded
         address[] memory accounts = new address[](1);
         accounts[0] = _user1;
-        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        int256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         string[] memory peerIds = new string[](1);
         peerIds[0] = peerId1;
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
+        int256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(rewards[0], reward);
         assertEq(totalRewards[0], reward);
         assertTrue(swarmCoordinator.hasSubmittedRoundStageReward(0, 0, _user1));
     }
 
     function test_Nobody_CanSubmitReward_TwiceInSameRoundAndStage_Fails() public {
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
+        int256 reward1 = 100;
+        int256 reward2 = 200;
         string memory peerId1 = "QmPeer1";
 
         // First submission
@@ -1138,7 +1138,7 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Nobody_CanSubmitReward_InFutureStage_Fails() public {
-        uint256 reward1 = 100;
+        int256 reward1 = 100;
         string memory peerId1 = "QmPeer1";
 
         // Make sure we're in stage 0
@@ -1153,8 +1153,8 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_Anyone_CanSubmitReward_InDifferentStages_Successfully() public {
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
+        int256 reward1 = 100;
+        int256 reward2 = 200;
 
         string memory peerId1 = "QmPeer1";
 
@@ -1185,19 +1185,19 @@ contract SwarmCoordinatorTest is Test {
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
         accounts[0] = _user1;
-        uint256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
-        uint256[] memory rewards1 = swarmCoordinator.getRoundStageReward(0, 1, accounts);
+        int256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        int256[] memory rewards1 = swarmCoordinator.getRoundStageReward(0, 1, accounts);
         string[] memory peerIds = new string[](1);
         peerIds[0] = peerId1;
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
+        int256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(rewards0[0], reward1);
         assertEq(rewards1[0], reward2);
         assertEq(totalRewards[0], reward1 + reward2);
     }
 
     function test_Anyone_CanSubmitReward_InDifferentRounds_Successfully() public {
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
+        int256 reward1 = 100;
+        int256 reward2 = 200;
         string memory peerId1 = "QmPeer1";
 
         // Submit reward in round 0
@@ -1224,19 +1224,19 @@ contract SwarmCoordinatorTest is Test {
         // Verify rewards were recorded correctly
         address[] memory accounts = new address[](1);
         accounts[0] = _user1;
-        uint256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
-        uint256[] memory rewards1 = swarmCoordinator.getRoundStageReward(1, 0, accounts);
+        int256[] memory rewards0 = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        int256[] memory rewards1 = swarmCoordinator.getRoundStageReward(1, 0, accounts);
         string[] memory peerIds = new string[](1);
         peerIds[0] = peerId1;
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
+        int256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(rewards0[0], reward1);
         assertEq(rewards1[0], reward2);
         assertEq(totalRewards[0], reward1 + reward2);
     }
 
     function test_Anyone_CanSubmitReward_ForPastRound_Successfully() public {
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
+        int256 reward1 = 100;
+        int256 reward2 = 200;
 
         string memory peerId1 = "QmPeer1";
         string memory peerId2 = "QmPeer2";
@@ -1260,13 +1260,13 @@ contract SwarmCoordinatorTest is Test {
         address[] memory accounts = new address[](2);
         accounts[0] = _user1;
         accounts[1] = _user2;
-        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        int256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         assertEq(rewards[0], reward1);
         assertEq(rewards[1], reward2);
     }
 
     function test_Nobody_CanSubmitRewards_ForDifferentPeer_Fails() public {
-        uint256 reward1 = 100;
+        int256 reward1 = 100;
 
         string memory peerId1 = "QmPeer1";
         string memory peerId2 = "QmPeer2";
@@ -1283,9 +1283,9 @@ contract SwarmCoordinatorTest is Test {
     }
 
     function test_GetRoundStageReward_MultipleAddresses_Successfully() public {
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
-        uint256 reward3 = 300;
+        int256 reward1 = 100;
+        int256 reward2 = 200;
+        int256 reward3 = 300;
 
         string memory peerId1 = "QmPeer1";
         string memory peerId2 = "QmPeer2";
@@ -1312,7 +1312,7 @@ contract SwarmCoordinatorTest is Test {
         accounts[0] = _user1;
         accounts[1] = _user2;
         accounts[2] = _user3;
-        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        int256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
 
         // Verify the rewards
         assertEq(rewards.length, 3);
@@ -1323,14 +1323,14 @@ contract SwarmCoordinatorTest is Test {
 
     function test_GetRoundStageReward_EmptyArray_Successfully() public view {
         address[] memory accounts = new address[](0);
-        uint256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        int256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
         assertEq(rewards.length, 0);
     }
 
     function test_GetTotalRewards_MultipleAddresses_Successfully() public {
-        uint256 reward1 = 100;
-        uint256 reward2 = 200;
-        uint256 reward3 = 300;
+        int256 reward1 = 100;
+        int256 reward2 = 200;
+        int256 reward3 = 300;
 
         string memory peerId1 = "QmPeer1";
         string memory peerId2 = "QmPeer2";
@@ -1357,7 +1357,7 @@ contract SwarmCoordinatorTest is Test {
         peerIds[0] = peerId1;
         peerIds[1] = peerId2;
         peerIds[2] = peerId3;
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
+        int256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
 
         // Verify the total rewards
         assertEq(totalRewards.length, 3);
@@ -1368,7 +1368,7 @@ contract SwarmCoordinatorTest is Test {
 
     function test_GetTotalRewards_EmptyArray_Successfully() public view {
         string[] memory peerIds = new string[](0);
-        uint256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
+        int256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(totalRewards.length, 0);
     }
 }

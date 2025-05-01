@@ -8,6 +8,13 @@ This repository contains the smart contracts for the RL Swarm project, focusing 
 
 If you want to interact with the contract, use the `SwarmCoordinatorProxy`.
 
+- v0.4.2
+   - Small:
+      - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x69C6e1D608ec64885E7b185d39b04B491a71768C)
+      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/)
+   - Big:
+      - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58)
+      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/)
 - v0.4.1
    - Small:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x69C6e1D608ec64885E7b185d39b04B491a71768C)
