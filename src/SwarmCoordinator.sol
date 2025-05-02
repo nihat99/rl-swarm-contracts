@@ -723,13 +723,24 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
+     * @dev Monkey patch to accept uint256 rewards, temporary solution
+     * @param roundNumber The round number for which to submit the reward
+     * @param stageNumber The stage number for which to submit the reward
+     * @param reward The reward amount to submit (can be positive or negative)
+     * @param peerId The peer ID reporting the rewards
+     */
+    function submitReward(uint256 roundNumber, uint256 stageNumber, uint256 reward, string calldata peerId) external {
+        submitReward(roundNumber, stageNumber, int256(reward), peerId);
+    }
+
+    /**
      * @dev Submits a reward for a specific round and stage
      * @param roundNumber The round number for which to submit the reward
      * @param stageNumber The stage number for which to submit the reward
      * @param reward The reward amount to submit (can be positive or negative)
      * @param peerId The peer ID reporting the rewards
      */
-    function submitReward(uint256 roundNumber, uint256 stageNumber, int256 reward, string calldata peerId) external {
+    function submitReward(uint256 roundNumber, uint256 stageNumber, int256 reward, string calldata peerId) public {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 

@@ -9,24 +9,24 @@ This repository contains the smart contracts for the RL Swarm project, focusing 
 If you want to interact with the contract, use the `SwarmCoordinatorProxy`.
 
 - v0.4.2
-   - Small:
+   - math:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x69C6e1D608ec64885E7b185d39b04B491a71768C)
-      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/)
-   - Big:
+      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0x0F78161498F09E0C3d7d846B066F217B026f88D1)
+   - math-hard:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58)
-      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/)
+      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0x8eCad295510716C8435F09d692F7C622b24c1C89)
 - v0.4.1
-   - Small:
+   - math:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x69C6e1D608ec64885E7b185d39b04B491a71768C)
       - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0x5D5c1409Ec33E058F9ae0C2C06293993Af5C12a4)
-   - Big:
+   - math-hard:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58)
       - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0x79088DEEF5b766ef3C2a33a20774aB513Ca44abc)
 - v0.4.0
-   - Small:
+   - math:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x69C6e1D608ec64885E7b185d39b04B491a71768C)
       - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0x50EF4D38c9306ED74441C3E792Ca8f079d1BDfC8)
-   - Big:
+   - math-hard:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58)
       - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0xb95fF779f77AADfD0991fD0150E2A8E17DE0B19C)
 - v0.3.1

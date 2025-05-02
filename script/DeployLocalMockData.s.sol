@@ -126,24 +126,24 @@ contract DeployLocalMockData is Script {
         coordinator.submitWinners(2, user2Round2Winners, peerId2);
 
         // Submit rewards for each round and stage
-        vm.broadcast(user1.privateKey);
-        coordinator.submitReward(0, 0, 100, peerId1);
-        vm.broadcast(user2.privateKey);
-        coordinator.submitReward(0, 0, 200, peerId2);
-        vm.broadcast(user3.privateKey);
-        coordinator.submitReward(0, 0, 300, peerId3);
+        // vm.broadcast(user1.privateKey);
+        // coordinator.submitReward(0, 0, 100, peerId1);
+        // vm.broadcast(user2.privateKey);
+        // coordinator.submitReward(0, 0, 200, peerId2);
+        // vm.broadcast(user3.privateKey);
+        // coordinator.submitReward(0, 0, 300, peerId3);
 
-        vm.broadcast(user1.privateKey);
-        coordinator.submitReward(1, 0, 150, peerId1);
-        vm.broadcast(user2.privateKey);
-        coordinator.submitReward(1, 0, 250, peerId2);
-        vm.broadcast(user3.privateKey);
-        coordinator.submitReward(1, 0, 350, peerId3);
+        // vm.broadcast(user1.privateKey);
+        // coordinator.submitReward(1, 0, 150, peerId1);
+        // vm.broadcast(user2.privateKey);
+        // coordinator.submitReward(1, 0, 250, peerId2);
+        // vm.broadcast(user3.privateKey);
+        // coordinator.submitReward(1, 0, 350, peerId3);
 
-        vm.broadcast(user1.privateKey);
-        coordinator.submitReward(2, 0, 175, peerId1);
-        vm.broadcast(user2.privateKey);
-        coordinator.submitReward(2, 0, 275, peerId2);
+        // vm.broadcast(user1.privateKey);
+        // coordinator.submitReward(2, 0, 175, peerId1);
+        // vm.broadcast(user2.privateKey);
+        // coordinator.submitReward(2, 0, 275, peerId2);
 
         // Get top winners
         (string[] memory topWinners, uint256[] memory winnerWins) = coordinator.winnerLeaderboard(0, 3);
