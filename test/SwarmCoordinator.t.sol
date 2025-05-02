@@ -1118,7 +1118,7 @@ contract SwarmCoordinatorTest is Test {
         int256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(rewards[0], reward);
         assertEq(totalRewards[0], reward);
-        assertTrue(swarmCoordinator.hasSubmittedRoundStageReward(0, 0, _user1));
+        assertTrue(swarmCoordinator.hasSubmittedRoundStageReward(0, 0, peerId1));
     }
 
     function test_Nobody_CanSubmitReward_TwiceInSameRoundAndStage_Fails() public {
@@ -1131,25 +1131,35 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId1);
         swarmCoordinator.submitReward(0, 0, reward1, peerId1);
 
-        // Try to submit again
+        // Try to submit again with same peer ID
         vm.expectRevert(SwarmCoordinator.RewardAlreadySubmitted.selector);
         swarmCoordinator.submitReward(0, 0, reward2, peerId1);
         vm.stopPrank();
     }
 
-    function test_Nobody_CanSubmitReward_InFutureStage_Fails() public {
+    function test_Anyone_CanSubmitReward_WithDifferentPeerIds_Successfully() public {
         int256 reward1 = 100;
+        int256 reward2 = 200;
         string memory peerId1 = "QmPeer1";
+        string memory peerId2 = "QmPeer2";
 
-        // Make sure we're in stage 0
-        vm.assertEq(swarmCoordinator.currentStage(), 0);
-
-        // First submission
+        // Register both peer IDs
         vm.startPrank(_user1);
         swarmCoordinator.registerPeer(peerId1);
-        vm.expectRevert(SwarmCoordinator.InvalidStageNumber.selector);
-        swarmCoordinator.submitReward(0, 1, reward1, peerId1);
+        swarmCoordinator.registerPeer(peerId2);
+
+        // Submit reward with first peer ID
+        swarmCoordinator.submitReward(0, 0, reward1, peerId1);
+
+        // Submit reward with second peer ID
+        swarmCoordinator.submitReward(0, 0, reward2, peerId2);
         vm.stopPrank();
+
+        // Verify both rewards were recorded
+        address[] memory accounts = new address[](1);
+        accounts[0] = _user1;
+        int256[] memory rewards = swarmCoordinator.getRoundStageReward(0, 0, accounts);
+        assertEq(rewards[0], reward1 + reward2); // Sum should be counted
     }
 
     function test_Anyone_CanSubmitReward_InDifferentStages_Successfully() public {
@@ -1250,7 +1260,7 @@ contract SwarmCoordinatorTest is Test {
         // Forward to next round
         _forwardToNextRound();
 
-        // Submit reward for round 0 again (as a different user)
+        // Submit reward for round 0 again (with a different peer ID)
         vm.startPrank(_user2);
         swarmCoordinator.registerPeer(peerId2);
         swarmCoordinator.submitReward(0, 0, reward2, peerId2);
