@@ -744,8 +744,14 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Check if round number is valid (must be less than or equal to current round)
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
-        // Check if stage number is valid (must be less than stage count)
-        if (stageNumber > _currentStage) revert InvalidStageNumber();
+        // Check if stage number is valid
+        if (roundNumber == _currentRound) {
+            // If round is current round, stage number must be less than or equal to current stage
+            if (stageNumber > _currentStage) revert InvalidStageNumber();
+        } else {
+            // If round is not current round, stage number must be less than stage count
+            if (stageNumber > _stageCount) revert InvalidStageNumber();
+        }
 
         // Check if peer ID has already submitted a reward for this round and stage
         if (_hasSubmittedRoundStageReward[roundNumber][stageNumber][peerId]) revert RewardAlreadySubmitted();

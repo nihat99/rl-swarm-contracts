@@ -1263,7 +1263,12 @@ contract SwarmCoordinatorTest is Test {
         // Submit reward for round 0 again (with a different peer ID)
         vm.startPrank(_user2);
         swarmCoordinator.registerPeer(peerId2);
+        // Submit reward for round 0, stage 0
         swarmCoordinator.submitReward(0, 0, reward2, peerId2);
+        // Submit reward for round 0, stage 1
+        swarmCoordinator.submitReward(0, 1, reward2, peerId2);
+        // Submit reward for round 0, stage 2
+        swarmCoordinator.submitReward(0, 2, reward2, peerId2);
         vm.stopPrank();
 
         // Verify rewards were recorded correctly
