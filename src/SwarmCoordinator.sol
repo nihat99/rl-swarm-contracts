@@ -56,8 +56,8 @@ contract SwarmCoordinator is UUPSUpgradeable {
     string[] private _bootnodes;
     // Maps round number and stage to mapping of account address to their submitted reward
     mapping(uint256 => mapping(uint256 => mapping(address => int256))) private _roundStageRewards;
-    // Maps round number and stage to mapping of account address to whether they have submitted a reward
-    mapping(uint256 => mapping(uint256 => mapping(address => bool))) private _hasSubmittedRoundStageReward;
+    // Maps round number and stage to mapping of peer ID to whether they have submitted a reward
+    mapping(uint256 => mapping(uint256 => mapping(string => bool))) private _hasSubmittedRoundStageReward;
     // Maps peer ID to their total rewards across all rounds
     mapping(string => int256) private _totalRewards;
 
@@ -747,15 +747,15 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Check if stage number is valid (must be less than stage count)
         if (stageNumber > _currentStage) revert InvalidStageNumber();
 
-        // Check if sender has already submitted a reward for this round and stage
-        if (_hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender]) revert RewardAlreadySubmitted();
+        // Check if peer ID has already submitted a reward for this round and stage
+        if (_hasSubmittedRoundStageReward[roundNumber][stageNumber][peerId]) revert RewardAlreadySubmitted();
 
         // Check if the peer ID belongs to the sender
         if (_peerIdToEoa[peerId] != msg.sender) revert InvalidVoterPeerId();
 
         // Record the reward
-        _roundStageRewards[roundNumber][stageNumber][msg.sender] = reward;
-        _hasSubmittedRoundStageReward[roundNumber][stageNumber][msg.sender] = true;
+        _roundStageRewards[roundNumber][stageNumber][msg.sender] += reward;
+        _hasSubmittedRoundStageReward[roundNumber][stageNumber][peerId] = true;
 
         // Update total rewards per peerId
         _totalRewards[peerId] += reward;
@@ -784,18 +784,18 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
-     * @dev Checks if an account has submitted a reward for a specific round and stage
+     * @dev Checks if a peer ID has submitted a reward for a specific round and stage
      * @param roundNumber The round number to check
      * @param stageNumber The stage number to check
-     * @param account The address of the account
-     * @return True if the account has submitted a reward for that round and stage, false otherwise
+     * @param peerId The peer ID to check
+     * @return True if the peer ID has submitted a reward for that round and stage, false otherwise
      */
-    function hasSubmittedRoundStageReward(uint256 roundNumber, uint256 stageNumber, address account)
+    function hasSubmittedRoundStageReward(uint256 roundNumber, uint256 stageNumber, string calldata peerId)
         external
         view
         returns (bool)
     {
-        return _hasSubmittedRoundStageReward[roundNumber][stageNumber][account];
+        return _hasSubmittedRoundStageReward[roundNumber][stageNumber][peerId];
     }
 
     /**
