@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [0.4.3]
 
-### ### Fixed
+### Fixed
 
 - `submitReward` takes into account current round when checking stage validity [PR#43](https://github.com/gensyn-ai/rl-swarm-contracts/pull/43)
 
