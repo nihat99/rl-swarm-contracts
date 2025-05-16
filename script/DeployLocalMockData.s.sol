@@ -144,19 +144,5 @@ contract DeployLocalMockData is Script {
         // coordinator.submitReward(2, 0, 175, peerId1);
         // vm.broadcast(user2.privateKey);
         // coordinator.submitReward(2, 0, 275, peerId2);
-
-        // Get top winners
-        (string[] memory topWinners, uint256[] memory winnerWins) = coordinator.winnerLeaderboard(0, 3);
-        console2.log("Top winners and their wins:");
-        for (uint256 i = 0; i < topWinners.length; i++) {
-            console2.log(topWinners[i], winnerWins[i]);
-        }
-
-        // Get top voters
-        (string[] memory topVoters, uint256[] memory voterVotes) = coordinator.voterLeaderboard(0, 3);
-        console2.log("Top voters and their votes:");
-        for (uint256 i = 0; i < topVoters.length; i++) {
-            console2.log(topVoters[i], voterVotes[i]);
-        }
     }
 }

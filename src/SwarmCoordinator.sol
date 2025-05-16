@@ -447,199 +447,23 @@ contract SwarmCoordinator is UUPSUpgradeable {
             }
         }
 
+        // Record the vote
+        _roundVotes[roundNumber][peerId] = winners;
+
         // If this is the first time this peer has voted, increment unique voters
         if (_voterVoteCounts[peerId] == 0) {
             _uniqueVoters++;
         }
 
-        // Record the vote
-        _roundVotes[roundNumber][peerId] = winners;
-
-        // Update vote counts and track unique voted peers
-        for (uint256 i = 0; i < winners.length; i++) {
-            _roundVoteCounts[roundNumber][winners[i]]++;
-            // If this peer has never been voted on before, increment unique voted peers
-            if (!_hasBeenVotedOn[winners[i]]) {
-                _hasBeenVotedOn[winners[i]] = true;
-                _uniqueVotedPeers++;
-            }
-        }
-
         // Update how many times each voter has voted
         _voterVoteCounts[peerId]++;
-        _updateTopVoters(peerId);
 
         // Update total wins and top winners
         for (uint256 i = 0; i < winners.length; i++) {
             _totalWins[winners[i]]++;
-            _updateTopWinners(winners[i]);
         }
 
         emit WinnerSubmitted(msg.sender, peerId, roundNumber, winners);
-    }
-
-    /**
-     * @dev Updates the top voters list when a voter's score changes
-     * @param voter The peer ID whose score has changed
-     */
-    function _updateTopVoters(string memory voter) internal {
-        uint256 voterVotes = _voterVoteCounts[voter];
-
-        // Find if voter is already in the list
-        uint256 currentIndex = type(uint256).max;
-        uint256 topVotersLength = _topVoters.length;
-        for (uint256 i = 0; i < topVotersLength; i++) {
-            if (keccak256(bytes(_topVoters[i])) == keccak256(bytes(voter))) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        if (currentIndex == type(uint256).max) {
-            // Voter is not in the list
-            if (topVotersLength < MAX_TOP_WINNERS) {
-                // List is not full, add to end
-                _topVoters.push(voter);
-                topVotersLength++;
-                currentIndex = topVotersLength - 1;
-            } else {
-                // List is full, check if voter should be added
-                if (_voterVoteCounts[_topVoters[topVotersLength - 1]] < voterVotes) {
-                    // Replace last place
-                    _topVoters[topVotersLength - 1] = voter;
-                    currentIndex = topVotersLength - 1;
-                } else {
-                    // Voter doesn't qualify for top list
-                    return;
-                }
-            }
-        }
-
-        // Find our how far we need to move the voter up in the list
-        uint256 initialIndex = currentIndex;
-        while (currentIndex > 0 && _voterVoteCounts[_topVoters[currentIndex - 1]] < voterVotes) {
-            currentIndex--;
-        }
-
-        // Swap if voter moved up in the list
-        if (currentIndex != initialIndex) {
-            string memory temp = _topVoters[currentIndex];
-            _topVoters[currentIndex] = _topVoters[initialIndex];
-            _topVoters[initialIndex] = temp;
-        }
-    }
-
-    /**
-     * @dev Updates the top winners list when a winner's score changes
-     * @param winner The peer ID whose score has changed
-     */
-    function _updateTopWinners(string memory winner) internal {
-        uint256 winnerWins = _totalWins[winner];
-
-        // Find if winner is already in the list
-        uint256 currentIndex = type(uint256).max;
-        uint256 topWinnersLength = _topWinners.length;
-        for (uint256 i = 0; i < topWinnersLength; i++) {
-            if (keccak256(bytes(_topWinners[i])) == keccak256(bytes(winner))) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        if (currentIndex == type(uint256).max) {
-            // Winner is not in the list
-            if (topWinnersLength < MAX_TOP_WINNERS) {
-                // List is not full, add to end
-                _topWinners.push(winner);
-                topWinnersLength++;
-                currentIndex = topWinnersLength - 1;
-            } else {
-                // List is full, check if winner should be added
-                if (_totalWins[_topWinners[topWinnersLength - 1]] < winnerWins) {
-                    // Replace last place
-                    _topWinners[topWinnersLength - 1] = winner;
-                    currentIndex = topWinnersLength - 1;
-                } else {
-                    // Winner doesn't qualify for top list
-                    return;
-                }
-            }
-        }
-
-        // Find our how far we need to move the voter up in the list
-        uint256 initialIndex = currentIndex;
-        while (currentIndex > 0 && _totalWins[_topWinners[currentIndex - 1]] < winnerWins) {
-            currentIndex--;
-        }
-
-        // Swap if winner moved up in the list
-        if (currentIndex != initialIndex) {
-            string memory temp = _topWinners[currentIndex];
-            _topWinners[currentIndex] = _topWinners[initialIndex];
-            _topWinners[initialIndex] = temp;
-        }
-    }
-
-    /**
-     * @dev Gets the number of times a voter has voted
-     * @param peerId The peer ID of the voter
-     * @return The number of times the voter has voted
-     */
-    function getVoterVoteCount(string calldata peerId) external view returns (uint256) {
-        return _voterVoteCounts[peerId];
-    }
-
-    /**
-     * @dev Gets a slice of the voter leaderboard
-     * @param start The starting index (inclusive)
-     * @param end The ending index (exclusive)
-     * @return peerIds Array of peer IDs sorted by number of votes (descending)
-     * @return voteCounts Array of corresponding vote counts
-     */
-    function voterLeaderboard(uint256 start, uint256 end)
-        external
-        view
-        returns (string[] memory peerIds, uint256[] memory voteCounts)
-    {
-        // Ensure start is not greater than end
-        require(start <= end, "Start index must be less than or equal to end index");
-
-        // Ensure end is not greater than the length of the list
-        if (end > _topVoters.length) {
-            end = _topVoters.length;
-        }
-
-        // Ensure start is not greater than the length of the list
-        if (start > _topVoters.length) {
-            start = _topVoters.length;
-        }
-
-        // Create result arrays with the correct size
-        uint256 length = end - start;
-        peerIds = new string[](length);
-        voteCounts = new uint256[](length);
-
-        // Fill the arrays
-        for (uint256 i = start; i < end; i++) {
-            uint256 index = i - start;
-
-            // Cache the top voter
-            string memory topVoter = _topVoters[i];
-
-            peerIds[index] = topVoter;
-            voteCounts[index] = _voterVoteCounts[topVoter];
-        }
-
-        return (peerIds, voteCounts);
-    }
-
-    /**
-     * @dev Gets the total number of wins for a peer ID
-     * @param peerId The peer ID to query
-     * @return The total number of wins for the peer ID
-     */
-    function getTotalWins(string calldata peerId) external view returns (uint256) {
-        return _totalWins[peerId];
     }
 
     /**
@@ -653,73 +477,21 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
-     * @dev Gets the vote count for a specific peer ID in a round
-     * @param roundNumber The round number to query
+     * @dev Gets the number of times a voter has voted
+     * @param peerId The peer ID of the voter
+     * @return The number of times the voter has voted
+     */
+    function getVoterVoteCount(string calldata peerId) external view returns (uint256) {
+        return _voterVoteCounts[peerId];
+    }
+
+    /**
+     * @dev Gets the total number of wins for a peer ID
      * @param peerId The peer ID to query
-     * @return The number of votes received by the peer ID in that round
+     * @return The total number of wins for the peer ID
      */
-    function getPeerVoteCount(uint256 roundNumber, string calldata peerId) external view returns (uint256) {
-        return _roundVoteCounts[roundNumber][peerId];
-    }
-
-    /**
-     * @dev Gets a slice of the leaderboard
-     * @param start The starting index (inclusive)
-     * @param end The ending index (exclusive)
-     * @return peerIds Array of peer IDs sorted by number of wins (descending)
-     * @return wins Array of corresponding win counts
-     */
-    function winnerLeaderboard(uint256 start, uint256 end)
-        external
-        view
-        returns (string[] memory peerIds, uint256[] memory wins)
-    {
-        // Ensure start is not greater than end
-        require(start <= end, "Start index must be less than or equal to end index");
-
-        // Ensure end is not greater than the length of the list
-        if (end > _topWinners.length) {
-            end = _topWinners.length;
-        }
-
-        // Ensure start is not greater than the length of the list
-        if (start > _topWinners.length) {
-            start = _topWinners.length;
-        }
-
-        // Create result arrays with the correct size
-        uint256 length = end - start;
-        peerIds = new string[](length);
-        wins = new uint256[](length);
-
-        // Fill the arrays
-        for (uint256 i = start; i < end; i++) {
-            uint256 index = i - start;
-
-            // Cache the top winner
-            string memory topWinner = _topWinners[i];
-
-            peerIds[index] = topWinner;
-            wins[index] = _totalWins[topWinner];
-        }
-
-        return (peerIds, wins);
-    }
-
-    /**
-     * @dev Gets the total number of unique voters who have participated
-     * @return The number of unique voters
-     */
-    function uniqueVoters() external view returns (uint256) {
-        return _uniqueVoters;
-    }
-
-    /**
-     * @dev Gets the total number of unique peers that have been voted on
-     * @return The number of unique peers that have received votes
-     */
-    function uniqueVotedPeers() external view returns (uint256) {
-        return _uniqueVotedPeers;
+    function getTotalWins(string calldata peerId) external view returns (uint256) {
+        return _totalWins[peerId];
     }
 
     /**
