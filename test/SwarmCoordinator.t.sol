@@ -381,6 +381,12 @@ contract SwarmCoordinatorTest is Test {
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.WinnerSubmitted(_user1, voterPeerId, 0, winners);
         swarmCoordinator.submitWinners(0, winners, voterPeerId);
+
+        // Verify votes
+        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, voterPeerId);
+        assertEq(voterVotes.length, 2);
+        assertEq(voterVotes[0], winners[0]);
+        assertEq(voterVotes[1], winners[1]);
     }
 
     function test_Anyone_CanSubmit_UnregisteredPeerIds_Successfully() public {
@@ -399,6 +405,12 @@ contract SwarmCoordinatorTest is Test {
         vm.expectEmit(true, true, true, true);
         emit SwarmCoordinator.WinnerSubmitted(_user1, voterPeerId, 0, winners);
         swarmCoordinator.submitWinners(0, winners, voterPeerId);
+
+        // Verify votes
+        string[] memory voterVotes = swarmCoordinator.getVoterVotes(0, voterPeerId);
+        assertEq(voterVotes.length, 2);
+        assertEq(voterVotes[0], winners[0]);
+        assertEq(voterVotes[1], winners[1]);
     }
 
     function test_Nobody_CanSubmitSameWinner_MultipleTimesInARound_Fails() public {

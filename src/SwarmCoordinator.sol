@@ -39,7 +39,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // Maximum number of top winners to track
     uint256 private constant MAX_TOP_WINNERS = 100;
     // Maps round number to mapping of voter address to their voted peer IDs
-    mapping(uint256 => mapping(string => bool)) private _roundVoted;
+    mapping(uint256 => mapping(string => string[])) private _roundVotes;
     // Maps round number to mapping of peer ID to number of votes received
     mapping(uint256 => mapping(string => uint256)) private _roundVoteCounts;
     // Maps voter address to number of times they have voted
@@ -433,8 +433,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
         if (roundNumber > _currentRound) revert InvalidRoundNumber();
 
         // Check if sender has already voted
-        if (_roundVoted[roundNumber][peerId]) revert WinnerAlreadyVoted();
-        _roundVoted[roundNumber][peerId] = true;
+        if (_roundVotes[roundNumber][peerId].length > 0) revert WinnerAlreadyVoted();
 
         // Check if the peer ID belongs to the sender
         if (_peerIdToEoa[peerId] != msg.sender) revert InvalidVoterPeerId();
@@ -448,7 +447,34 @@ contract SwarmCoordinator is UUPSUpgradeable {
             }
         }
 
+        // Record the vote
+        _roundVotes[roundNumber][peerId] = winners;
+
+        // Update total wins and top winners
+        for (uint256 i = 0; i < winners.length; i++) {
+            _totalWins[winners[i]]++;
+        }
+
         emit WinnerSubmitted(msg.sender, peerId, roundNumber, winners);
+    }
+
+    /**
+     * @dev Gets the votes for a specific round from a specific peer ID
+     * @param roundNumber The round number to query
+     * @param peerId The peer ID of the voter
+     * @return Array of peer IDs that the voter voted for
+     */
+    function getVoterVotes(uint256 roundNumber, string calldata peerId) external view returns (string[] memory) {
+        return _roundVotes[roundNumber][peerId];
+    }
+
+    /**
+     * @dev Gets the total number of wins for a peer ID
+     * @param peerId The peer ID to query
+     * @return The total number of wins for the peer ID
+     */
+    function getTotalWins(string calldata peerId) external view returns (uint256) {
+        return _totalWins[peerId];
     }
 
     /**
