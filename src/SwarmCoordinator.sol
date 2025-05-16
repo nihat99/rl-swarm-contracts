@@ -450,6 +450,14 @@ contract SwarmCoordinator is UUPSUpgradeable {
         // Record the vote
         _roundVotes[roundNumber][peerId] = winners;
 
+        // If this is the first time this peer has voted, increment unique voters
+        if (_voterVoteCounts[peerId] == 0) {
+            _uniqueVoters++;
+        }
+
+        // Update how many times each voter has voted
+        _voterVoteCounts[peerId]++;
+
         // Update total wins and top winners
         for (uint256 i = 0; i < winners.length; i++) {
             _totalWins[winners[i]]++;
@@ -466,6 +474,15 @@ contract SwarmCoordinator is UUPSUpgradeable {
      */
     function getVoterVotes(uint256 roundNumber, string calldata peerId) external view returns (string[] memory) {
         return _roundVotes[roundNumber][peerId];
+    }
+
+    /**
+     * @dev Gets the number of times a voter has voted
+     * @param peerId The peer ID of the voter
+     * @return The number of times the voter has voted
+     */
+    function getVoterVoteCount(string calldata peerId) external view returns (uint256) {
+        return _voterVoteCounts[peerId];
     }
 
     /**
