@@ -495,6 +495,14 @@ contract SwarmCoordinator is UUPSUpgradeable {
     }
 
     /**
+     * @dev Gets the total number of unique voters who have participated
+     * @return The number of unique voters
+     */
+    function uniqueVoters() external view returns (uint256) {
+        return _uniqueVoters;
+    }
+
+    /**
      * @dev Monkey patch to accept uint256 rewards, temporary solution
      * @param roundNumber The round number for which to submit the reward
      * @param stageNumber The stage number for which to submit the reward
