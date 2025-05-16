@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0]
+
+### Deprecated
+
+- Deprecated on chain leaderboard management for off chain event management [PR#45](https://github.com/gensyn-ai/rl-swarm-contracts/pull/45)
+
+### Removed
+
+- Removed methods: getPeerVoteCount, voterLeaderboard, winnerLeaderboard, uniqueVotedPeers [PR#45](https://github.com/gensyn-ai/rl-swarm-contracts/pull/45)
+
 ## [0.4.3]
 
 ### Fixed
