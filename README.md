@@ -11,10 +11,10 @@ If you want to interact with the contract, use the `SwarmCoordinatorProxy`.
 - v0.5.0
    - math:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x69C6e1D608ec64885E7b185d39b04B491a71768C)
-      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0xC713Defe71F7CA2b2c4a3973A25744818EE473A9)
+      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0xAe8E8e52b595CA6546877caa7bFC6C4E7126597c)
    - math-hard:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58)
-      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0x1E6698DFC31Ead6AFBa8F9Ba485E017337661bD3)
+      - [SwarmCoordinator Implementation](https://gensyn-testnet.explorer.alchemy.com/address/0xeFaE44cBbafC81671551fbB9209A03D3930aA31B)
 - v0.4.3
    - math:
       - [SwarmCoordinatorProxy](https://gensyn-testnet.explorer.alchemy.com/address/0x69C6e1D608ec64885E7b185d39b04B491a71768C)
