@@ -753,4 +753,28 @@ contract SwarmCoordinatorTest is Test {
         int256[] memory totalRewards = swarmCoordinator.getTotalRewards(peerIds);
         assertEq(totalRewards.length, 0);
     }
+
+    function test_GetTotalWins_ReturnsZero_ForUnregisteredPeerId() public view {
+        string memory unregisteredPeerId = "unregistered";
+        uint256 wins = swarmCoordinator.getTotalWins(unregisteredPeerId);
+        assertEq(wins, 0, "Unregistered peer ID should have 0 wins");
+    }
+
+    function test_GetTotalWins_ReturnsCorrectCount_ForRegisteredPeerId() public {
+        string memory peerId = "QmPeer1";
+
+        // Register peer ID
+        vm.prank(_user1);
+        swarmCoordinator.registerPeer(peerId);
+
+        // Submit a win for this peer ID
+        string[] memory winners = new string[](1);
+        winners[0] = peerId;
+        vm.prank(_user1);
+        swarmCoordinator.submitWinners(0, winners, peerId);
+
+        // Verify win count
+        uint256 wins = swarmCoordinator.getTotalWins(peerId);
+        assertEq(wins, 1, "Registered peer ID should have correct win count");
+    }
 }
