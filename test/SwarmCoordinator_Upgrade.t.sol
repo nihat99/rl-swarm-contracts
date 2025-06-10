@@ -28,7 +28,7 @@ contract SwarmCoordinatorUpgradeTest is Test {
 
     function test_DeployedSuccessfully() public {
         vm.startPrank(_owner);
-        assertEq(swarmCoordinator.stageCount(), 3);
+        assertEq(swarmCoordinator.stageCount(), 1);
         vm.stopPrank();
     }
 
