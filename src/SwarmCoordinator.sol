@@ -25,7 +25,7 @@ contract SwarmCoordinator is UUPSUpgradeable {
     // Current stage within the round
     uint256 _currentStage = 0;
     // Total number of stages in a round
-    uint256 constant _stageCount = 3;
+    uint256 constant _stageCount = 1;
     // Maps EOA addresses to their corresponding peer IDs
     mapping(address => string[]) _eoaToPeerId;
     // Maps peer IDs to their corresponding EOA addresses

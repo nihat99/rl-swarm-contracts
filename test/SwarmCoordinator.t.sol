@@ -46,7 +46,9 @@ contract SwarmCoordinatorTest is Test {
         vm.prank(_owner);
         (, uint256 newStage) = swarmCoordinator.updateStageAndRound();
 
-        assertEq(newStage, startingStage + 1);
+        // Historically a round had multiple stages. As of June 2025
+        // the GenRL game will use one stage per round.
+        assertEq(newStage, 0);
     }
 
     function test_NonOwner_CannotAdvanceStage_Fails() public {
@@ -632,10 +634,6 @@ contract SwarmCoordinatorTest is Test {
         swarmCoordinator.registerPeer(peerId2);
         // Submit reward for round 0, stage 0
         swarmCoordinator.submitReward(0, 0, reward2, peerId2);
-        // Submit reward for round 0, stage 1
-        swarmCoordinator.submitReward(0, 1, reward2, peerId2);
-        // Submit reward for round 0, stage 2
-        swarmCoordinator.submitReward(0, 2, reward2, peerId2);
         vm.stopPrank();
 
         // Verify rewards were recorded correctly
